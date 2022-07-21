@@ -3,7 +3,7 @@ import argparse
 import pysam
 import time
 
-def intersect_methylation(bam_file, bed_file, out_file):
+def intersect_methylation(bam_file, bed_file, out_file, len_filter):
     """
     summarize the methylation of each CpG per read in the defined regions
     """
@@ -15,6 +15,11 @@ def intersect_methylation(bam_file, bed_file, out_file):
             for pileupread in pileupcolumn.pileups:
                 if pileupread.is_del or pileupread.is_refskip:
                     continue
+                if pileupread.indel > len_filter:
+                    pass
+                else:
+                    
+
                 query_name = pileupread.alignment.query_name
                 pos = pileupcolumn.pos
                 modbase_key = ('C', 1, 'm') if pileupread.alignment.is_reverse else ('C', 0, 'm')
@@ -72,6 +77,8 @@ def main():
                         help='input bam file with Mm and Ml tags')
     parser.add_argument('-r', '--regions', type=str, required=True,
                         help='a bed file of genomeic regions that will be used to summarize the methylation')
+    parser.add_argument('-l', '--len', type=int, default=50,
+                        help='lenght filter of the bam file. Only reads with length >= len will be considered')
     parser.add_argument('-o', '--out', type=str, required=True,
                         help='output bed like txt file storing the methylation data in the defined regions')
 
@@ -83,7 +90,7 @@ def main():
     if not os.path.exists(bed_file):
         raise ValueError("--bed file does not exist!")
     start_time = time.time()
-    intersect_methylation(bam_file, bed_file, args.out)
+    intersect_methylation(bam_file, bed_file, args.out, args.len)
     end_time = time.time()
     print("--- %s seconds ---" % (end_time - start_time))
 
