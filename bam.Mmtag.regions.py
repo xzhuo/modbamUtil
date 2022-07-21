@@ -17,8 +17,9 @@ def intersect_methylation(bam_file, bed_file, out_file, len_filter):
                     continue
                 if pileupread.indel > len_filter:
                     pass
-                else:
-                    
+                elif pileupread.indel == 0:
+                    pass
+
 
                 query_name = pileupread.alignment.query_name
                 pos = pileupcolumn.pos
