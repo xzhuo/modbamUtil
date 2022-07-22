@@ -12,19 +12,21 @@ def intersect_methylation(bam_file, bed_file, out_file, len_filter):
     with open(bed_file, 'r') as f:  # read the bed file
         bed_list = f.readlines()
         for pileupcolumn in bam.pileup(bed_list[0], bed_list[1], bed_list[2]):
+            ref_pos = pileupcolumn.reference_pos
             for pileupread in pileupcolumn.pileups:
-                if pileupread.is_del or pileupread.is_refskip:
-                    continue
-                if pileupread.indel > len_filter:
-                    pass
-                elif pileupread.indel == 0:
-                    pass
-
-
                 query_name = pileupread.alignment.query_name
-                pos = pileupcolumn.pos
                 modbase_key = ('C', 1, 'm') if pileupread.alignment.is_reverse else ('C', 0, 'm')
                 strand = '-' if pileupread.alignment.is_reverse else '+'
+
+                if pileupread.is_del or pileupread.is_refskip:
+                    continue
+                if pileupread.indel == 0:
+                    pass
+                elif pileupread.indel > len_filter:
+                    pass
+
+
+
                 try:
                     modbase_list = pileupread.alignment.modified_bases[modbase_key] # a list of tuples
                     last_match = None
