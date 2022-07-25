@@ -1,34 +1,41 @@
+from curses import window
 import os
 import argparse
 import pysam
 import time
 
-def intersect_methylation(bam_file, bed_file, out_file, len_filter):
+def intersect_methylation(bam_file, vcf_file, window, len_offset, out_file):
     """
     summarize the methylation of each CpG per read in the defined regions
     """
     bam = pysam.AlignmentFile(bam_file, threads = 8, check_sq=False)
     out_list = []
-    with open(bed_file, 'r') as f:  # read the bed file
-        bed_list = f.readlines()
-        for pileupcolumn in bam.pileup(bed_list[0], bed_list[1], bed_list[2]):
+    with open(vcf_file, 'r') as f:  # read the bed file
+        vcf_list = f.readlines()
+        vcf_dict = dict(item.split("=") for item in vcf_list[7].split(";"))
+        sv_len = int(vcf_dict['SVLEN'])
+        for pileupcolumn in bam.pileup(vcf_list[0], vcf_list[1] - window, vcf_list[1] + window):
             ref_pos = pileupcolumn.reference_pos
             for pileupread in pileupcolumn.pileups:
                 query_name = pileupread.alignment.query_name
                 modbase_key = ('C', 1, 'm') if pileupread.alignment.is_reverse else ('C', 0, 'm')
                 strand = '-' if pileupread.alignment.is_reverse else '+'
-
                 if pileupread.is_del or pileupread.is_refskip:
                     continue
                 if pileupread.indel == 0:
+                    query_pos = pileupread.query_position
+                    try:
+                        modbase_perc = [j[1]/255 for j in list(filter(lambda i: i[0] == query_pos, pileupread.alignment.modified_bases[modbase_key]))][0]
+                        dict = {'chr': vcf_list[0], 'ref_pos': ref_pos, 'query_name': query_name, 'query_pos': query_pos, 'modbase_perc': modbase_perc, 'strand': strand}
+                    except:
+                        pass
+
+                elif pileupread.indel - sv_len < len_offset and ref_pos - vcf_list[1] < len_offset:
                     pass
-                elif pileupread.indel > len_filter:
-                    pass
 
 
 
-                try:
-                    modbase_list = pileupread.alignment.modified_bases[modbase_key] # a list of tuples
+
                     last_match = None
                     for i in pileupread.alignment.get_aligned_pairs():
                         if i[0] is None:
@@ -79,21 +86,23 @@ def main():
     parser.add_argument('-b', '--bam', type=str, required=True,
                         help='input bam file with Mm and Ml tags')
     parser.add_argument('-r', '--regions', type=str, required=True,
-                        help='a bed file of genomeic regions that will be used to summarize the methylation')
+                        help='a vcf file of genomeic regions that will be used to summarize the methylation')
     parser.add_argument('-l', '--len', type=int, default=50,
-                        help='lenght filter of the bam file. Only reads with length >= len will be considered')
+                        help='length and coordinate offset from vcf to the bam file. Only insertions with coordinate offset < len and SVlength difference < len will be considered')
+    parser.add_argument('-w', '--window', type=int, default=2000,
+                        help='flanking window on both ends of identified insrtions of the vcf file. CpG methylation within this window on both ends will be summarized')
     parser.add_argument('-o', '--out', type=str, required=True,
                         help='output bed like txt file storing the methylation data in the defined regions')
 
     args = parser.parse_args()
     bam_file = os.path.abspath(args.bam)
-    bed_file = os.path.abspath(args.regions)
+    vcf_file = os.path.abspath(args.regions)
     if not os.path.exists(bam_file):
         raise ValueError("--bam file does not exist!")
-    if not os.path.exists(bed_file):
-        raise ValueError("--bed file does not exist!")
+    if not os.path.exists(vcf_file):
+        raise ValueError("--vcf file does not exist!")
     start_time = time.time()
-    intersect_methylation(bam_file, bed_file, args.out, args.len)
+    intersect_methylation(bam_file, vcf_file, args.window, args.len, args.out)
     end_time = time.time()
     print("--- %s seconds ---" % (end_time - start_time))
 
