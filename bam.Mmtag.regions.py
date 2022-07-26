@@ -11,7 +11,7 @@ def intersect_methylation(bam_file, vcf_file, window, len_offset, out_file):
     out_list = []
     with open(vcf_file, 'r') as f:  # read the bed file
         for vcf_list in f.readlines():
-            vcf_dict = dict({item.split("=") for item in vcf_list[7].split(";")})
+            vcf_dict = dict(item.split("=") for item in vcf_list[7].split(";"))
             sv_len = int(vcf_dict['SVLEN'])
             indel_id = ':'.join(vcf_list[0], vcf_list[1])
             for pileupcolumn in bam.pileup(vcf_list[0], vcf_list[1] - window, vcf_list[1] + window):
