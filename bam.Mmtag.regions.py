@@ -10,7 +10,8 @@ def intersect_methylation(bam_file, vcf_file, window, len_offset, out_file):
     bam = pysam.AlignmentFile(bam_file, threads = 8, check_sq=False)
     out_list = []
     with open(vcf_file, 'r') as f:  # read the bed file
-        for vcf_list in f.readlines():
+        for line in f.readlines():
+            vcf_list = line.strip().split('\t')
             vcf_dict = dict(item.split("=") for item in vcf_list[7].split(";"))
             sv_len = int(vcf_dict['SVLEN'])
             indel_id = ':'.join(vcf_list[0], vcf_list[1])
