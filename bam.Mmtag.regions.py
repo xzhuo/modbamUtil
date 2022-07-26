@@ -14,6 +14,7 @@ def intersect_methylation(bam_file, vcf_file, window, len_offset, out_file):
         vcf_list = f.readlines()
         vcf_dict = dict(item.split("=") for item in vcf_list[7].split(";"))
         sv_len = int(vcf_dict['SVLEN'])
+        indel_id = ':'.join(vcf_list[0], vcf_list[1])
         for pileupcolumn in bam.pileup(vcf_list[0], vcf_list[1] - window, vcf_list[1] + window):
             ref_pos = pileupcolumn.reference_pos
             for pileupread in pileupcolumn.pileups:
@@ -22,64 +23,33 @@ def intersect_methylation(bam_file, vcf_file, window, len_offset, out_file):
                 strand = '-' if pileupread.alignment.is_reverse else '+'
                 if pileupread.is_del or pileupread.is_refskip:
                     continue
+                query_pos = pileupread.query_position
                 if pileupread.indel == 0:
-                    query_pos = pileupread.query_position
                     try:
                         modbase_perc = [j[1]/255 for j in list(filter(lambda i: i[0] == query_pos, pileupread.alignment.modified_bases[modbase_key]))][0]
-                        dict = {'chr': vcf_list[0], 'ref_pos': ref_pos, 'query_name': query_name, 'query_pos': query_pos, 'modbase_perc': modbase_perc, 'strand': strand}
+                        dict = {'chr': vcf_list[0], 'ref_pos': ref_pos, 'query_name': query_name, 'query_pos': query_pos, 'modbase_perc': modbase_perc, 'strand': strand, 'id': indel_id, 'sv_len': sv_len, 'type': 'flanking'}
+                        out_list.append(dict)
                     except:
                         pass
 
-                elif pileupread.indel - sv_len < len_offset and ref_pos - vcf_list[1] < len_offset:
-                    pass
-
-
-
-
-                    last_match = None
-                    for i in pileupread.alignment.get_aligned_pairs():
-                        if i[0] is None:
-                            # deletion
-                            try:
-                                deletion_length +=1
-                            except UnboundLocalError:
-                                deletion_length = 1
-                        elif i[1] is None:
-                            # insertion
-                            try:
-                                insertion_length +=1
-                            except UnboundLocalError:
-                                insertion_length = 1
-                        else:
-                            # match
-                            if last_match is not None:
-                                if insertion_length > len_filter:
-                                    ref = (i[1],i[1])
-                                    query = (i[0] - insertion_length, i[0])
-                                    query_seq = pileupread.alignment.query_sequence[query[0]:query[1]]
-                                    modbase_pos_list = [j[0] - query[0] for j in list(filter(lambda i: i[0] >= query[0] and i[0] < query[1], modbase_list))]
-                                    modbase_perc_list = [j[1]/255 for j in list(filter(lambda i: i[0] >= query[0] and i[0] < query[1], modbase_list))]
-                                    modbase_pos_string = ','.join(["%d" % i for i in modbase_pos_list])
-                                    modbase_string = ','.join(["%.2f" % i for i in mod
+                elif pileupread.indel - sv_len < 20 and ref_pos - vcf_list[1] < len_offset:
+                    query = (pileupread.query_position, pileupread.query_position + sv_len)
+                    # query_seq = pileupread.alignment.query_sequence[query[0]:query[1]]
+                    try:
+                        for j in list(filter(lambda i: i[0] >= query[0] and i[0] < query[1], pileupread.alignment.modified_bases[modbase_key])):
+                            modbase_perc = j[1]/255
+                            dict = {'chr': vcf_list[0], 'ref_pos': ref_pos, 'query_name': query_name, 'query_pos': j[0], 'modbase_perc': modbase_perc, 'strand': strand, 'id': indel_id, 'sv_len': sv_len, 'type': 'insertion'}
+                            out_list.append(dict)
+                    except:
+                        pass
 
     bam.close()
 
     with open(out_file, "w") as out:
-        for line in out_list:
-            out.write("{:s}\t{:d}\t{:d}\t{:s}\t{:d}\t{:d}\t{:d}\t{:s}\t{:.4f}\t{:d}\t{:s}\t{:s}\t{:s}\n".format(
-                line[0],
-                line[1],
-                line[2],
-                line[3],
-                line[4],
-                line[5],
-                line[6],
-                line[7],
-                line[8],
-                line[9],
-                line[10],
-                line[11],
-                line[12]))
+        for dict in out_list:
+            out.write("{:s}\t{:d}\t{:s}\t{:d}\t{:d}\t{:s}\t{:.2f}\t{:s}\t{:s}\n".format(
+                dict['chr'], dict['ref_pos'], dict['query_name'], dict['query_pos'], dict['sv_len'], dict['strand'], dict['modbase_perc'], dict['id'], dict['type']))
+
 
 def main():
     parser = argparse.ArgumentParser(description='calculate CpG methylation average of inserted regions in the bam file')
