@@ -10,37 +10,37 @@ def intersect_methylation(bam_file, vcf_file, window, len_offset, out_file):
     bam = pysam.AlignmentFile(bam_file, threads = 8, check_sq=False)
     out_list = []
     with open(vcf_file, 'r') as f:  # read the bed file
-        vcf_list = f.readlines()
-        vcf_dict = dict(item.split("=") for item in vcf_list[7].split(";"))
-        sv_len = int(vcf_dict['SVLEN'])
-        indel_id = ':'.join(vcf_list[0], vcf_list[1])
-        for pileupcolumn in bam.pileup(vcf_list[0], vcf_list[1] - window, vcf_list[1] + window):
-            ref_pos = pileupcolumn.reference_pos
-            for pileupread in pileupcolumn.pileups:
-                query_name = pileupread.alignment.query_name
-                modbase_key = ('C', 1, 'm') if pileupread.alignment.is_reverse else ('C', 0, 'm')
-                strand = '-' if pileupread.alignment.is_reverse else '+'
-                if pileupread.is_del or pileupread.is_refskip:
-                    continue
-                query_pos = pileupread.query_position
-                if pileupread.indel == 0:
-                    try:
-                        modbase_perc = [j[1]/255 for j in list(filter(lambda i: i[0] == query_pos, pileupread.alignment.modified_bases[modbase_key]))][0]
-                        dict = {'chr': vcf_list[0], 'ref_pos': ref_pos, 'query_name': query_name, 'query_pos': query_pos, 'modbase_perc': modbase_perc, 'strand': strand, 'id': indel_id, 'sv_len': sv_len, 'type': 'flanking'}
-                        out_list.append(dict)
-                    except:
-                        pass
-
-                elif pileupread.indel - sv_len < 20 and ref_pos - vcf_list[1] < len_offset:
-                    query = (pileupread.query_position, pileupread.query_position + sv_len)
-                    # query_seq = pileupread.alignment.query_sequence[query[0]:query[1]]
-                    try:
-                        for j in list(filter(lambda i: i[0] >= query[0] and i[0] < query[1], pileupread.alignment.modified_bases[modbase_key])):
-                            modbase_perc = j[1]/255
-                            dict = {'chr': vcf_list[0], 'ref_pos': ref_pos, 'query_name': query_name, 'query_pos': j[0], 'modbase_perc': modbase_perc, 'strand': strand, 'id': indel_id, 'sv_len': sv_len, 'type': 'insertion'}
+        for vcf_list in f.readlines():
+            vcf_dict = dict({item.split("=") for item in vcf_list[7].split(";")})
+            sv_len = int(vcf_dict['SVLEN'])
+            indel_id = ':'.join(vcf_list[0], vcf_list[1])
+            for pileupcolumn in bam.pileup(vcf_list[0], vcf_list[1] - window, vcf_list[1] + window):
+                ref_pos = pileupcolumn.reference_pos
+                for pileupread in pileupcolumn.pileups:
+                    query_name = pileupread.alignment.query_name
+                    modbase_key = ('C', 1, 'm') if pileupread.alignment.is_reverse else ('C', 0, 'm')
+                    strand = '-' if pileupread.alignment.is_reverse else '+'
+                    if pileupread.is_del or pileupread.is_refskip:
+                        continue
+                    query_pos = pileupread.query_position
+                    if pileupread.indel == 0:
+                        try:
+                            modbase_perc = [j[1]/255 for j in list(filter(lambda i: i[0] == query_pos, pileupread.alignment.modified_bases[modbase_key]))][0]
+                            dict = {'chr': vcf_list[0], 'ref_pos': ref_pos, 'query_name': query_name, 'query_pos': query_pos, 'modbase_perc': modbase_perc, 'strand': strand, 'id': indel_id, 'sv_len': sv_len, 'type': 'flanking'}
                             out_list.append(dict)
-                    except:
-                        pass
+                        except:
+                            pass
+
+                    elif pileupread.indel - sv_len < 20 and ref_pos - vcf_list[1] < len_offset:
+                        query = (pileupread.query_position, pileupread.query_position + sv_len)
+                        # query_seq = pileupread.alignment.query_sequence[query[0]:query[1]]
+                        try:
+                            for j in list(filter(lambda i: i[0] >= query[0] and i[0] < query[1], pileupread.alignment.modified_bases[modbase_key])):
+                                modbase_perc = j[1]/255
+                                dict = {'chr': vcf_list[0], 'ref_pos': ref_pos, 'query_name': query_name, 'query_pos': j[0], 'modbase_perc': modbase_perc, 'strand': strand, 'id': indel_id, 'sv_len': sv_len, 'type': 'insertion'}
+                                out_list.append(dict)
+                        except:
+                            pass
 
     bam.close()
 
