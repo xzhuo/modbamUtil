@@ -1,4 +1,3 @@
-from curses import window
 import os
 import argparse
 import pysam
