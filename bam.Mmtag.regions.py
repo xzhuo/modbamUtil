@@ -37,7 +37,7 @@ def intersect_methylation(bam_file, vcf_file, window, len_offset, out_file):
 
                     elif ins_len >= 50 and ref_pos - sv_pos < len_offset:
                         breakpoint()
-                        query = (pileupread.query_position, pileupread.query_position + sv_len)
+                        query = (pileupread.query_position, pileupread.query_position + ins_len)
                         # query_seq = pileupread.alignment.query_sequence[query[0]:query[1]]
                         try:
                             for j in list(filter(lambda i: i[0] >= query[0] and i[0] < query[1], pileupread.alignment.modified_bases[modbase_key])):
