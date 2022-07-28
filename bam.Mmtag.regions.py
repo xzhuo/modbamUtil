@@ -15,8 +15,9 @@ def intersect_methylation(bam_file, vcf_file, window, len_offset, out_file):
             vcf_dict = dict(item.split("=") for item in vcf_list[7].split(";"))
             sv_len = int(vcf_dict['SVLEN'])
             indel_id = vcf_list[2]
-            for pileupcolumn in bam.pileup(vcf_list[0], int(vcf_list[1]) - window, int(vcf_list[1]) + window):
+            for pileupcolumn in bam.pileup(vcf_list[0], int(vcf_list[1]) - window, int(vcf_list[1]) + window, truncate=True):
                 ref_pos = pileupcolumn.reference_pos
+                print(vcf_list[1],ref_pos)
                 for pileupread in pileupcolumn.pileups:
                     query_name = pileupread.alignment.query_name
                     modbase_key = ('C', 1, 'm') if pileupread.alignment.is_reverse else ('C', 0, 'm')
@@ -32,7 +33,8 @@ def intersect_methylation(bam_file, vcf_file, window, len_offset, out_file):
                         except:
                             pass
 
-                    elif pileupread.indel - sv_len < 20 and ref_pos - int(vcf_list[1]) < len_offset:
+                    elif pileupread.indel >= 50 and ref_pos - int(vcf_list[1]) < len_offset:
+                        breakpoint()
                         query = (pileupread.query_position, pileupread.query_position + sv_len)
                         # query_seq = pileupread.alignment.query_sequence[query[0]:query[1]]
                         try:
@@ -46,9 +48,9 @@ def intersect_methylation(bam_file, vcf_file, window, len_offset, out_file):
     bam.close()
 
     with open(out_file, "w") as out:
-        for methyl_dict in out_list:
+        for me in out_list:
             out.write("{:s}\t{:d}\t{:s}\t{:d}\t{:d}\t{:s}\t{:.2f}\t{:s}\t{:s}\n".format(
-                dict['chr'], dict['ref_pos'], dict['query_name'], dict['query_pos'], dict['sv_len'], dict['strand'], dict['modbase_perc'], dict['id'], dict['type']))
+                me['chr'], me['ref_pos'], me['query_name'], me['query_pos'], me['sv_len'], me['strand'], me['modbase_perc'], me['id'], me['type']))
 
 
 def main():
