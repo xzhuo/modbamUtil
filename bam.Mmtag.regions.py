@@ -15,9 +15,10 @@ def intersect_methylation(bam_file, vcf_file, window, len_offset, out_file):
             vcf_dict = dict(item.split("=") for item in vcf_list[7].split(";"))
             sv_len = int(vcf_dict['SVLEN'])
             indel_id = vcf_list[2]
-            for pileupcolumn in bam.pileup(vcf_list[0], int(vcf_list[1]) - window, int(vcf_list[1]) + window, truncate=True):
+            sv_pos = int(vcf_list[1])
+            for pileupcolumn in bam.pileup(vcf_list[0], sv_pos - window, sv_pos + window, truncate=True):
                 ref_pos = pileupcolumn.reference_pos
-                print(vcf_list[1],ref_pos)
+                print(sv_pos,ref_pos)
                 for pileupread in pileupcolumn.pileups:
                     query_name = pileupread.alignment.query_name
                     modbase_key = ('C', 1, 'm') if pileupread.alignment.is_reverse else ('C', 0, 'm')
@@ -25,21 +26,22 @@ def intersect_methylation(bam_file, vcf_file, window, len_offset, out_file):
                     if pileupread.is_del or pileupread.is_refskip:
                         continue
                     query_pos = pileupread.query_position
-                    if pileupread.indel == 0:
+                    ins_len = pileupread.indel
+                    if ins_len == 0:
                         try:
                             modbase_perc = [j[1]/255 for j in list(filter(lambda i: i[0] == query_pos, pileupread.alignment.modified_bases[modbase_key]))][0]
-                            methyl_dict = {'chr': vcf_list[0], 'ref_pos': ref_pos, 'query_name': query_name, 'query_pos': query_pos, 'modbase_perc': modbase_perc, 'strand': strand, 'id': indel_id, 'sv_len': sv_len, 'type': 'flanking'}
+                            methyl_dict = {'chr': vcf_list[0], 'ref_pos': ref_pos, 'query_name': query_name, 'query_pos': query_pos, 'modbase_perc': modbase_perc, 'strand': strand, 'id': indel_id, 'sv_len': sv_len, 'ins_len': ins_len, 'type': 'flanking'}
                             out_list.append(methyl_dict)
                         except:
                             pass
 
-                    elif pileupread.indel >= 50 and ref_pos - int(vcf_list[1]) < len_offset:
+                    elif ins_len >= 50 and ref_pos - sv_pos < len_offset:
                         query = (pileupread.query_position, pileupread.query_position + sv_len)
                         # query_seq = pileupread.alignment.query_sequence[query[0]:query[1]]
                         try:
                             for j in list(filter(lambda i: i[0] >= query[0] and i[0] < query[1], pileupread.alignment.modified_bases[modbase_key])):
                                 modbase_perc = j[1]/255
-                                methyl_dict = {'chr': vcf_list[0], 'ref_pos': ref_pos, 'query_name': query_name, 'query_pos': j[0], 'modbase_perc': modbase_perc, 'strand': strand, 'id': indel_id, 'sv_len': sv_len, 'type': 'insertion'}
+                                methyl_dict = {'chr': vcf_list[0], 'ref_pos': ref_pos, 'query_name': query_name, 'query_pos': j[0], 'modbase_perc': modbase_perc, 'strand': strand, 'id': indel_id, 'sv_len': sv_len, 'ins_len': ins_len, 'type': 'insertion'}
                                 out_list.append(methyl_dict)
                         except:
                             pass
@@ -48,8 +50,8 @@ def intersect_methylation(bam_file, vcf_file, window, len_offset, out_file):
 
     with open(out_file, "w") as out:
         for me in out_list:
-            out.write("{:s}\t{:d}\t{:s}\t{:d}\t{:d}\t{:s}\t{:.2f}\t{:s}\t{:s}\n".format(
-                me['chr'], me['ref_pos'], me['query_name'], me['query_pos'], me['sv_len'], me['strand'], me['modbase_perc'], me['id'], me['type']))
+            out.write("{:s}\t{:d}\t{:s}\t{:d}\t{:d}\t{:d}\t{:s}\t{:.2f}\t{:s}\t{:s}\n".format(
+                me['chr'], me['ref_pos'], me['query_name'], me['query_pos'], me['sv_len'], me['ins_len'] me['strand'], me['modbase_perc'], me['id'], me['type']))
 
 
 def main():
