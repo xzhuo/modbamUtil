@@ -9,7 +9,7 @@ def intersect_methylation(bam, vcf_line, window, len_offset):
     """
     summarize the methylation of each CpG per read in the defined regions
     """
-
+    breakpoint()
     vcf_list = vcf_line.split('\t')
     vcf_dict = dict(item.split("=") for item in vcf_list[7].split(";"))
     sv_len = int(vcf_dict['SVLEN'])
@@ -74,12 +74,12 @@ def main():
     start_time = time.time()
     bam = pysam.AlignmentFile(bam_file, threads = 8, check_sq=False)
     vcf_array = []
-    out_list = []
+    outputs = []
     with open(vcf_file, 'r') as f:  # read the bed file
         for line in f.readlines():
             vcf_array.append(line.strip())
     with WorkerPool(n_jobs=args.threads, shared_objects=bam) as pool:
-        outputs = pool.map(intersect_methylation, zip(repeat(bam), vcf_array, repeat(args.window), repeat(args.len)), progress_bar=True)
+        outputs = pool.map(intersect_methylation, zip(repeat(bam), vcf_array, repeat(args.window), repeat(args.len)), iterable_len=10,progress_bar=True)
     bam.close()
     with open(args.out, "w") as out:
         for out_list in outputs:
