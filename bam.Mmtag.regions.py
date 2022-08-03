@@ -78,8 +78,10 @@ def main():
     with open(vcf_file, 'r') as f:  # read the bed file
         for line in f.readlines():
             vcf_array.append(line.strip())
-    with WorkerPool(n_jobs=args.threads, shared_objects=bam) as pool:
-        outputs = pool.map(intersect_methylation, zip(repeat(bam), vcf_array, repeat(args.window), repeat(args.len)), iterable_len=10,progress_bar=True)
+    
+    outputs = intersect_methylation(bam, vcf_array[0], args.window, args.len)
+    # with WorkerPool(n_jobs=args.threads, shared_objects=bam) as pool:
+    #     outputs = pool.map(intersect_methylation, zip(repeat(bam), vcf_array, repeat(args.window), repeat(args.len)), iterable_len=10,progress_bar=True)
     bam.close()
     with open(args.out, "w") as out:
         for out_list in outputs:
