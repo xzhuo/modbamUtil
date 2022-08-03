@@ -5,11 +5,12 @@ from itertools import repeat
 from mpire import WorkerPool
 import time
 
-def intersect_methylation(bam, vcf_line, window, len_offset):
+def intersect_methylation(bam_file, vcf_line, window, len_offset):
     """
     summarize the methylation of each CpG per read in the defined regions
     """
-    breakpoint()
+
+    bam = pysam.AlignmentFile(bam_file, threads = 4, check_sq=False)
     vcf_list = vcf_line.split('\t')
     vcf_dict = dict(item.split("=") for item in vcf_list[7].split(";"))
     sv_len = int(vcf_dict['SVLEN'])
@@ -18,7 +19,6 @@ def intersect_methylation(bam, vcf_line, window, len_offset):
     out_list = []
     for pileupcolumn in bam.pileup(vcf_list[0], sv_pos - window, sv_pos + window, truncate=True):
         ref_pos = pileupcolumn.reference_pos
-        print(sv_pos,ref_pos)
         for pileupread in pileupcolumn.pileups:
             query_name = pileupread.alignment.query_name
             modbase_key = ('C', 1, 'm') if pileupread.alignment.is_reverse else ('C', 0, 'm')
@@ -45,6 +45,9 @@ def intersect_methylation(bam, vcf_line, window, len_offset):
                         out_list.append(methyl_dict)
                 except:
                     pass
+
+    bam.close()
+
     return out_list
 
 
@@ -72,17 +75,15 @@ def main():
     if not os.path.exists(vcf_file):
         raise ValueError("--vcf file does not exist!")
     start_time = time.time()
-    bam = pysam.AlignmentFile(bam_file, threads = 8, check_sq=False)
     vcf_array = []
     outputs = []
     with open(vcf_file, 'r') as f:  # read the bed file
         for line in f.readlines():
             vcf_array.append(line.strip())
-    
-    outputs = intersect_methylation(bam, vcf_array[0], args.window, args.len)
-    # with WorkerPool(n_jobs=args.threads, shared_objects=bam) as pool:
-    #     outputs = pool.map(intersect_methylation, zip(repeat(bam), vcf_array, repeat(args.window), repeat(args.len)), iterable_len=10,progress_bar=True)
-    bam.close()
+
+    with WorkerPool(n_jobs=args.threads) as pool:
+        outputs = pool.imap(intersect_methylation, zip(repeat(bam_file), vcf_array, repeat(args.window), repeat(args.len)), iterable_len=len(vcf_array), progress_bar=True)
+
     with open(args.out, "w") as out:
         for out_list in outputs:
             for me in out_list:
