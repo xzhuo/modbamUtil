@@ -17,7 +17,7 @@ def intersect_methylation(bam_file, vcf_line, window, len_offset):
     indel_id = vcf_list[2]
     sv_pos = int(vcf_list[1])
     out_list = []
-    mei = vcf_list[12] if len(vcf_list) == 13 else '.'
+    mei = vcf_list[13] if len(vcf_list) == 14 else '.'
     for pileupcolumn in bam.pileup(vcf_list[0], sv_pos - window, sv_pos + window, truncate=True):
         ref_pos = pileupcolumn.reference_pos
         for pileupread in pileupcolumn.pileups:
