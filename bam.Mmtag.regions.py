@@ -23,7 +23,10 @@ def intersect_methylation(bam_file, vcf_line, window, len_offset):
         ref_pos = pileupcolumn.reference_pos
         for pileupread in pileupcolumn.pileups:
             pairs = pileupread.alignment.get_aligned_pairs()
-            query_sv_pos = [i[0] for i in pairs if i[1] == sv_pos][0]
+            try:
+                query_sv_pos = [i[0] for i in pairs if i[1] == sv_pos][0]
+            except IndexError:
+                query_sv_pos = 0.5
             query_name = pileupread.alignment.query_name
             modbase_key = ('C', 1, 'm') if pileupread.alignment.is_reverse else ('C', 0, 'm')
             strand = '-' if pileupread.alignment.is_reverse else '+'
