@@ -17,10 +17,13 @@ def intersect_methylation(bam_file, vcf_line, window, len_offset):
     indel_id = vcf_list[2]
     sv_pos = int(vcf_list[1])
     out_list = []
-    mei = vcf_list[13] if len(vcf_list) == 14 else '.'
+    mei = vcf_list[13] if len(vcf_list) == 15 else '.'
+    mei_strand = vcf_list[14] if len(vcf_list) == 15 else '.'
     for pileupcolumn in bam.pileup(vcf_list[0], sv_pos - window, sv_pos + window, truncate=True):
         ref_pos = pileupcolumn.reference_pos
         for pileupread in pileupcolumn.pileups:
+            pairs = pileupread.alignment.get_aligned_pairs()
+            query_sv_pos = [i[1] for i in pairs if i[0] == sv_pos][0]
             query_name = pileupread.alignment.query_name
             modbase_key = ('C', 1, 'm') if pileupread.alignment.is_reverse else ('C', 0, 'm')
             strand = '-' if pileupread.alignment.is_reverse else '+'
@@ -31,7 +34,7 @@ def intersect_methylation(bam_file, vcf_line, window, len_offset):
             if ins_len == 0:
                 try:
                     modbase_perc = [j[1]/255 for j in list(filter(lambda i: i[0] == query_pos, pileupread.alignment.modified_bases[modbase_key]))][0]
-                    methyl_dict = {'chr': vcf_list[0], 'ref_pos': ref_pos, 'query_name': query_name, 'query_pos': query_pos, 'modbase_perc': modbase_perc, 'strand': strand, 'id': indel_id, 'sv_len': sv_len, 'ins_len': ins_len, 'type': 'flanking', 'mei': mei}
+                    methyl_dict = {'chr': vcf_list[0], 'ref_pos': ref_pos, 'query_name': query_name, 'query_pos': query_pos, 'rel_query_pos': query_pos - query_sv_pos, 'modbase_perc': modbase_perc, 'strand': strand, 'id': indel_id, 'sv_len': sv_len, 'ins_len': ins_len, 'type': 'flanking', 'mei': mei, 'mei_strand': mei_strand}
                     out_list.append(methyl_dict)
                 except:
                     pass
@@ -42,7 +45,7 @@ def intersect_methylation(bam_file, vcf_line, window, len_offset):
                 try:
                     for j in list(filter(lambda i: i[0] >= query[0] and i[0] < query[1], pileupread.alignment.modified_bases[modbase_key])):
                         modbase_perc = j[1]/255
-                        methyl_dict = {'chr': vcf_list[0], 'ref_pos': ref_pos, 'query_name': query_name, 'query_pos': j[0], 'modbase_perc': modbase_perc, 'strand': strand, 'id': indel_id, 'sv_len': sv_len, 'ins_len': ins_len, 'type': 'insertion', 'mei': mei}
+                        methyl_dict = {'chr': vcf_list[0], 'ref_pos': ref_pos, 'query_name': query_name, 'query_pos': j[0], 'rel_query_pos': j[0] - query_sv_pos, 'modbase_perc': modbase_perc, 'strand': strand, 'id': indel_id, 'sv_len': sv_len, 'ins_len': ins_len, 'type': 'insertion', 'mei': mei, 'mei_strand': mei_strand}
                         out_list.append(methyl_dict)
                 except:
                     pass
@@ -88,8 +91,8 @@ def main():
     with open(args.out, "w") as out:
         for out_list in outputs:
             for me in out_list:
-                out.write("{:s}\t{:d}\t{:s}\t{:d}\t{:d}\t{:d}\t{:s}\t{:.2f}\t{:s}\t{:s}\t{:s}\n".format(
-                    me['chr'], me['ref_pos'], me['query_name'], me['query_pos'], me['sv_len'], me['ins_len'], me['strand'], me['modbase_perc'], me['id'], me['type'], me['mei']))
+                out.write("{:s}\t{:d}\t{:s}\t{:d}\t{:d}\t{:d}\t{:d}\t{:s}\t{:.2f}\t{:s}\t{:s}\t{:s}\t{:s}\n".format(
+                    me['chr'], me['ref_pos'], me['query_name'], me['query_pos'], me['rel_query_pos'], me['sv_len'], me['ins_len'], me['strand'], me['modbase_perc'], me['id'], me['type'], me['mei'], me['mei_strand']))
     end_time = time.time()
     print("--- %s seconds ---" % (end_time - start_time))
 
