@@ -97,7 +97,7 @@ def main():
                 out.write("{:s}\t{:d}\t{:s}\t{:d}\t{:d}\t{:d}\t{:d}\t{:s}\t{:.2f}\t{:s}\t{:s}\t{:s}\t{:s}\n".format(
                     me['chr'], me['ref_pos'], me['query_name'], me['query_pos'], me['rel_query_pos'], me['sv_len'], me['ins_len'], me['strand'], me['modbase_perc'], me['id'], me['type'], me['mei'], me['mei_strand']))
     end_time = time.time()
-    print("--- %s seconds ---" % (end_time - start_time))
+    print("--- %s hours ---" % ((end_time - start_time)/3600))
 
 
 if __name__ == '__main__':
