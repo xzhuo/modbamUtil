@@ -81,10 +81,6 @@ def intersect_methylation(bam_file, interval, window):
             out_list.append([interval.chr, interval.start, interval.end, j[1], i.read, j[0], j[2], i.strand])
 
 
-methyl_dict = {'chr': vcf_list[0], 'ref_pos': ref_pos, 'query_name': query_name, 'query_pos': query_pos, 'rel_query_pos': query_pos - query_sv_pos, 'modbase_perc': modbase_perc, 'strand': strand, 'id': indel_id, 'sv_len': sv_len, 'ins_len': ins_len, 'type': 'flanking', 'mei': mei, 'mei_strand': mei_strand}
-
-
-
 def main():
     parser = argparse.ArgumentParser(description='calculate CpG methylation average of inserted regions in the bam file')
     parser.add_argument('-b', '--bam', type=str, required=True,
@@ -120,9 +116,8 @@ def main():
 
     with open(args.out, "w") as out:
         for out_list in outputs:
-            for me in out_list:
-                out.write("{:s}\t{:d}\t{:s}\t{:d}\t{:d}\t{:d}\t{:d}\t{:s}\t{:.2f}\t{:s}\t{:s}\t{:s}\t{:s}\n".format(
-                    me['chr'], me['ref_pos'], me['query_name'], me['query_pos'], me['rel_query_pos'], me['sv_len'], me['ins_len'], me['strand'], me['modbase_perc'], me['id'], me['type'], me['mei'], me['mei_strand']))
+            for i in out_list:
+                print("\t".join(i))
     end_time = time.time()
     print("--- %s hours ---" % ((end_time - start_time)/3600))
 
