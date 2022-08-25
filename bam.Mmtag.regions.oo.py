@@ -43,8 +43,8 @@ class Interval:
                 continue
             if flanking_window[0] < read.reference_start:
                 flanking_window[0] = read.reference_start
-            if flanking_window[1] > read.reference_end: 
-                flanking_window[1] = read.reference_end
+            if flanking_window[1] >= read.reference_end:
+                flanking_window[1] = read.reference_end - 1
             get_pos = convert_pos(read)
             query_flanking_start = get_pos['find_query'][flanking_window[0]]
             query_flanking_end = get_pos['find_query'][flanking_window[1]]
