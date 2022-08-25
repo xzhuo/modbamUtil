@@ -80,7 +80,7 @@ def intersect_methylation(bam_file, interval, window):
     bam = pysam.AlignmentFile(bam_file, threads = 4, check_sq=False)
     interval.attach_modbase_list(window, bam)
     for i in interval.modbase_list:
-        for j in i.modbase_pos_perc:
+        for j in i['modbase_pos_perc']:
             # chr, chr.start, chr,end, chr.pos, read, read.pos, methylation, strand
             out_list.append([interval.chr, interval.start, interval.end, j[1], i.read, j[0], j[2], i.strand])
 
