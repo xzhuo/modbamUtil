@@ -36,9 +36,9 @@ class Interval:
             sys.exit("unknow interval type!")
     
     def attach_modbase_list(self, window, bam):
-        flanking_window = (self.interval.start - window, self.interval.end + window)
+        flanking_window = (self.start - window, self.end + window)
         self.modbase_list = []
-        for read in bam.fetch(self.interval.chr, flanking_window[0], flanking_window[1]):
+        for read in bam.fetch(self.chr, flanking_window[0], flanking_window[1]):
             if read.is_supplementary or read.is_secondary or read.is_unmapped:
                 continue
             get_pos = convert_pos(read)
@@ -51,7 +51,7 @@ class Interval:
                 modbase_list = read.modified_bases[modbase_key]
                 modbase_query_list = [j[0] for j in list(filter(lambda i: i[0] >= query_flanking_start and i[0] < query_flanking_end, modbase_list))]
                 modbase_ref_list = [get_pos['find_ref'][j[0]] if j[0] in get_pos['find_ref'] else 'INS' for j in modbase_query_list]
-                modbase_rel_pos_list = [i - self.interval.start for i in modbase_query_list]
+                modbase_rel_pos_list = [i - self.start for i in modbase_query_list]
                 modbase_perc_list = [j[1]/255 for j in list(filter(lambda i: i[0] >= query_flanking_start and i[0] < query_flanking_end, modbase_list))]
                 modbase_pos_perc = list(zip(modbase_rel_pos_list, modbase_ref_list, modbase_perc_list))
             except:
@@ -113,13 +113,16 @@ def main():
             line_item = Interval(line.strip(), args.form)
             interval_array.append(line_item)
 
-    with WorkerPool(n_jobs=args.threads) as pool:
-        outputs = pool.imap(intersect_methylation, zip(repeat(bam_file), interval_array, repeat(args.window)), iterable_len=len(interval_array), progress_bar=True)
+    if args.threads == 1:
+        outputs.append(intersect_methylation(bam_file, interval_array, args.window))
+    else:
+        with WorkerPool(n_jobs=args.threads) as pool:
+            outputs = pool.imap(intersect_methylation, zip(repeat(bam_file), interval_array, repeat(args.window)), iterable_len=len(interval_array), progress_bar=True)
 
     with open(args.out, "w") as out:
         for out_list in outputs:
             for i in out_list:
-                print("\t".join(i))
+                out.write("\t".join(i))
     end_time = time.time()
     print("--- %s hours ---" % ((end_time - start_time)/3600))
 
