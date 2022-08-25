@@ -114,7 +114,8 @@ def main():
             interval_array.append(line_item)
 
     if args.threads == 1:
-        outputs.append(intersect_methylation(bam_file, interval_array, args.window))
+        for i in interval_array:
+            outputs.append(intersect_methylation(bam_file, i, args.window))
     else:
         with WorkerPool(n_jobs=args.threads) as pool:
             outputs = pool.imap(intersect_methylation, zip(repeat(bam_file), interval_array, repeat(args.window)), iterable_len=len(interval_array), progress_bar=True)
