@@ -89,6 +89,8 @@ def main():
                         help='multi-threading')
     parser.add_argument('-r', '--region', type=str, required=True,
                         help='a vcf/bed file of genomeic regions that will be used to summarize the methylation')
+    parser.add_argument('-f', '--form', type=str, required=True,
+                        help='The file format of the genomic region file, only vcf or bed like files are supported.')
     parser.add_argument('-l', '--len', type=int, default=50,
                         help='length and coordinate offset from vcf to the bam file. Only insertions with coordinate offset < len and SVlength difference < len will be considered')
     parser.add_argument('-w', '--window', type=int, default=2000,
@@ -108,7 +110,7 @@ def main():
     outputs = []
     with open(region_file, 'r') as f:  # read the region file
         for line in f.readlines():
-            line_item = Interval(line.strip(), "vcf")
+            line_item = Interval(line.strip(), args.form)
             interval_array.append(line_item)
 
     with WorkerPool(n_jobs=args.threads) as pool:
