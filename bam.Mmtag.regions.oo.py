@@ -53,7 +53,7 @@ class Interval:
             try:
                 modbase_list = read.modified_bases[modbase_key]
                 modbase_query_list = [j[0] for j in list(filter(lambda i: i[0] >= query_flanking_start and i[0] < query_flanking_end, modbase_list))]
-                modbase_ref_list = [get_pos['find_ref'][j[0]] if j[0] in get_pos['find_ref'] else 'INS' for j in modbase_query_list]
+                modbase_ref_list = [get_pos['find_ref'][i] if i in get_pos['find_ref'] else 'INS' for i in modbase_query_list]
                 modbase_rel_pos_list = [i - self.start for i in modbase_query_list]
                 modbase_perc_list = [j[1]/255 for j in list(filter(lambda i: i[0] >= query_flanking_start and i[0] < query_flanking_end, modbase_list))]
                 modbase_pos_perc = list(zip(modbase_rel_pos_list, modbase_ref_list, modbase_perc_list))
