@@ -36,11 +36,15 @@ class Interval:
             sys.exit("unknow interval type!")
     
     def attach_modbase_list(self, window, bam):
-        flanking_window = (self.start - window, self.end + window)
+        flanking_window = [self.start - window, self.end + window]
         self.modbase_list = []
         for read in bam.fetch(self.chr, flanking_window[0], flanking_window[1]):
             if read.is_supplementary or read.is_secondary or read.is_unmapped:
                 continue
+            if flanking_window[0] < read.reference_start:
+                flanking_window[0] = read.reference_start
+            if flanking_window[1] > read.reference_end: 
+                flanking_window[1] = read.reference_end
             get_pos = convert_pos(read)
             query_flanking_start = get_pos['find_query'][flanking_window[0]]
             query_flanking_end = get_pos['find_query'][flanking_window[1]]
