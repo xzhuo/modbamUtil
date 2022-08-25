@@ -19,8 +19,9 @@ class Interval:
             # chr1    136603  svim_asm.INS.2  A       AGGCTGACCTCTGTCCGCGTGGGAGGGGCCGGTGTGAGGCAAGGGCTCG       .       PASS    SVTYPE=INS;END=136603;SVLEN=48;READS=HG00741#2#JAHALX010000154.1        GT      0/1     .       -1      -1      .       .
             vcf_dict = dict(item.split("=") for item in line_list[7].split(";"))
             self.chr = line_list[0]
-            self.start = int(line_list[1])
-            self.end = int(line_list[1])
+            self.pos = int(line_list[1])
+            self.start = self.pos
+            self.end = self.pos
             self.indel_id = line_list[2]
             self.sv_len = int(vcf_dict['SVLEN'])
             self.mei = line_list[13] if len(line_list) == 15 else '.'
@@ -33,108 +34,54 @@ class Interval:
             self.end = int(line_list[2])
         else:
             sys.exit("unknow interval type!")
+    
+    def attach_modbase_list(self, window, bam):
+        flanking_window = (self.interval.start - window, self.interval.end + window)
+        self.modbase_list = []
+        for read in bam.fetch(self.interval.chr, flanking_window[0], flanking_window[1]):
+            if read.is_supplementary or read.is_secondary or read.is_unmapped:
+                continue
+            get_pos = convert_pos(read)
+            query_flanking_start = get_pos['find_query'][flanking_window[0]]
+            query_flanking_end = get_pos['find_query'][flanking_window[1]]
+            query_name = read.query_name
+            modbase_key = ('C', 1, 'm') if read.is_reverse else ('C', 0, 'm')
+            strand = '-' if read.is_reverse else '+'
+            try:
+                modbase_list = read.modified_bases[modbase_key]
+                modbase_query_list = [j[0] for j in list(filter(lambda i: i[0] >= query_flanking_start and i[0] < query_flanking_end, modbase_list))]
+                modbase_ref_list = [get_pos['find_ref'][j[0]] if j[0] in get_pos['find_ref'] else 'INS' for j in modbase_query_list]
+                modbase_rel_pos_list = [i - self.interval.start for i in modbase_query_list]
+                modbase_perc_list = [j[1]/255 for j in list(filter(lambda i: i[0] >= query_flanking_start and i[0] < query_flanking_end, modbase_list))]
+                modbase_pos_perc = list(zip(modbase_rel_pos_list, modbase_ref_list, modbase_perc_list))
+            except:
+                modbase_pos_perc = []
+        self.modbase_list.append({'read': query_name, 'strand': strand, 'modbase_pos_perc': modbase_pos_perc})
 
-def intersect_methylation(bam_file, interval, window, len_offset):
+
+def convert_pos(read):
+    result_dict = {'find_ref': {}, 'find_query': {}}
+    for i in read.get_aligned_pairs(matches_only=True):
+        result_dict['find_ref'][i[0]] = i[1]
+        result_dict['find_query'][i[1]] = i[0]
+    return result_dict
+
+
+def intersect_methylation(bam_file, interval, window):
     """
     summarize the methylation of each CpG per read in the defined regions
     """
 
-    bam = pysam.AlignmentFile(bam_file, threads = 4, check_sq=False)
     out_list = []
-    flanking_window = (interval.start - window, interval.end + window)
-    for read in bam.fetch(interval.chr, flanking_window[0], flanking_window[1]):
-        if read.is_supplementary or read.is_secondary or read.is_unmapped:
-            continue
-        aligned_pairs = read.get_aligned_pairs()
-        query_flanking_window = 
-        query_name = read.query_name
-        modbase_key = ('C', 1, 'm') if read.is_reverse else ('C', 0, 'm')
-        strand = '-' if read.is_reverse else '+'
-        try:
-            modbase_list = read.modified_bases[modbase_key] # a list of tuples
-            modbase_pos_list = [j[0] for j in list(filter(lambda i: i[0] >= query[0] and i[0] < query[1], modbase_list))]
-            modbase_perc_list = [j[1]/255 for j in list(filter(lambda i: i[0] >= query[0] and i[0] < query[1], modbase_list))]
-            last_match = None
-            for i in read.get_aligned_pairs():
-                if i[1] < interval.start - window or i[1] > interval.end + window:
-                    continue
-                if i[0] is None:
-                    # deletion
-                    try:
-                        deletion_length +=1
-                    except UnboundLocalError:
-                        deletion_length = 1
-                elif i[1] is None:
-                    # insertion
-                    try:
-                        insertion_length +=1
-                    except UnboundLocalError:
-                        insertion_length = 1
-                else:
-                    # match
-                    if last_match is not None:
-                        if insertion_length > len_filter:
-                            ref = (i[1],i[1])
-                            query = (i[0] - insertion_length, i[0])
-                            query_seq = read.query_sequence[query[0]:query[1]]
-                            modbase_pos_list = [j[0] - query[0] for j in list(filter(lambda i: i[0] >= query[0] and i[0] < query[1], modbase_list))]
-                            modbase_perc_list = [j[1]/255 for j in list(filter(lambda i: i[0] >= query[0] and i[0] < query[1], modbase_list))]
-                            modbase_pos_string = ','.join(["%d" % i for i in modbase_pos_list])
-                            modbase_string = ','.join(["%.2f" % i for i in modbase_perc_list])
-                            modbase_count = len(modbase_perc_list)
-                            if len(modbase_perc_list) > 0:
-                                modbase_perc = sum(modbase_perc_list)/len(modbase_perc_list)
-                            else:
-                                modbase_perc = -1
-                            out_list.append([read.reference_name, ref[0], ref[1], query_name, query[0], query[1], query[1]-query[0], strand, modbase_perc, modbase_count, modbase_string, modbase_pos_string, query_seq])
+    bam = pysam.AlignmentFile(bam_file, threads = 4, check_sq=False)
+    interval.attach_modbase_list(window, bam)
+    for i in interval.modbase_list:
+        for j in i.modbase_pos_perc:
+            # chr, chr.start, chr,end, chr.pos, read, read.pos, methylation, strand
+            out_list.append([interval.chr, interval.start, interval.end, j[1], i.read, j[0], j[2], i.strand])
 
-                        elif deletion_length > len_filter:
-                            ref = (i[1] - deletion_length,i[1])
-                            query = (i[0], i[0])
 
-                    insertion_length = 0
-                    deletion_length = 0
-                    last_match = i
-        except:
-            pass
-
-    for pileupcolumn in bam.pileup(interval.chr, interval.sv_pos - window, interval.sv_pos + window, truncate=True):
-        ref_pos = pileupcolumn.reference_pos
-        for pileupread in pileupcolumn.pileups:
-            pairs = pileupread.alignment.get_aligned_pairs()
-            try:
-                query_sv_pos = [i[0] for i in pairs if i[1] == interval.sv_pos][0]
-            except IndexError:
-                query_sv_pos = 0.5
-            query_name = pileupread.alignment.query_name
-            modbase_key = ('C', 1, 'm') if pileupread.alignment.is_reverse else ('C', 0, 'm')
-            strand = '-' if pileupread.alignment.is_reverse else '+'
-            if pileupread.is_del or pileupread.is_refskip:
-                continue
-            query_pos = pileupread.query_position
-            ins_len = pileupread.indel
-            if ins_len == 0:
-                try:
-                    modbase_perc = [j[1]/255 for j in list(filter(lambda i: i[0] == query_pos, pileupread.alignment.modified_bases[modbase_key]))][0]
-                    methyl_dict = {'chr': interval.chr, 'ref_pos': ref_pos, 'query_name': query_name, 'query_pos': query_pos, 'rel_query_pos': query_pos - query_sv_pos, 'modbase_perc': modbase_perc, 'strand': strand, 'id': interval.indel_id, 'sv_len': interval.sv_len, 'ins_len': ins_len, 'type': 'flanking', 'mei': interval.mei, 'mei_strand': interval.mei_strand}
-                    out_list.append(methyl_dict)
-                except:
-                    pass
-
-            elif ins_len >= 50 and ref_pos - interval.sv_pos < len_offset:
-                query = (pileupread.query_position, pileupread.query_position + ins_len)
-                # query_seq = pileupread.alignment.query_sequence[query[0]:query[1]]
-                try:
-                    for j in list(filter(lambda i: i[0] >= query[0] and i[0] < query[1], pileupread.alignment.modified_bases[modbase_key])):
-                        modbase_perc = j[1]/255
-                        methyl_dict = {'chr': interval.chr, 'ref_pos': ref_pos, 'query_name': query_name, 'query_pos': j[0], 'rel_query_pos': j[0] - query_sv_pos, 'modbase_perc': modbase_perc, 'strand': strand, 'id': interval.indel_id, 'sv_len': interval.sv_len, 'ins_len': ins_len, 'type': 'insertion', 'mei': interval.mei, 'mei_strand': interval.mei_strand}
-                        out_list.append(methyl_dict)
-                except:
-                    pass
-
-    bam.close()
-
-    return out_list
+methyl_dict = {'chr': vcf_list[0], 'ref_pos': ref_pos, 'query_name': query_name, 'query_pos': query_pos, 'rel_query_pos': query_pos - query_sv_pos, 'modbase_perc': modbase_perc, 'strand': strand, 'id': indel_id, 'sv_len': sv_len, 'ins_len': ins_len, 'type': 'flanking', 'mei': mei, 'mei_strand': mei_strand}
 
 
 
