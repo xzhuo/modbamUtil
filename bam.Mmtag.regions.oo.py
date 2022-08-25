@@ -81,7 +81,7 @@ def intersect_methylation(bam_file, interval, window):
     for i in interval.modbase_list:
         for j in i['modbase_pos_perc']:
             # chr, chr.start, chr,end, chr.pos, read, read.pos, methylation, strand
-            out_list.append([interval.chr, interval.start, interval.end, j[1], i.read, j[0], j[2], i.strand])
+            out_list.append([interval.chr, interval.start, interval.end, j[1], i['read'], j[0], j[2], i['strand']])
     return out_list
 
 
