@@ -36,7 +36,7 @@ class Interval:
             sys.exit("unknow interval type!")
     
     def attach_modbase_list(self, window, bam):
-        flanking_window = (self.start - window, self.end + window)
+        flanking_window = (self.start - window if self.start > window else 0, self.end + window)
         self.modbase_list = []
         for read in bam.fetch(self.chr, flanking_window[0], flanking_window[1]):
             if read.is_supplementary or read.is_secondary or read.is_unmapped:
