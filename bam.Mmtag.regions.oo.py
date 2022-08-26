@@ -127,7 +127,9 @@ def main():
     with open(args.out, "w") as out:
         for out_list in outputs:
             for i in out_list:
-                out.write("\t".join(i))
+                # chr, chr.start, chr,end, chr.pos, read, read.pos, methylation, strand
+                out.write("{:s}\t{:d}\t{:d}\t{:d}\t{:s}\t{:d}\t{:.2f}\t{:s}\n".format(
+                        i[0],i[1],i[2],i[3],i[4],i[5],i[6],i[7]))
     end_time = time.time()
     print("--- %s hours ---" % ((end_time - start_time)/3600))
 
