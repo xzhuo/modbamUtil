@@ -44,10 +44,11 @@ class Interval:
             all_ref_pos = read.get_reference_positions()
             read_ref_start = min(all_ref_pos, key=lambda x:abs(x-flanking_window[0]))
             read_ref_end = min(all_ref_pos, key=lambda x:abs(x-flanking_window[1]))
+            ref_pos = min(all_ref_pos, key=lambda x:abs(x-self.start))
             get_pos = convert_pos(read)
             query_flanking_start = get_pos['find_query'][read_ref_start]
             query_flanking_end = get_pos['find_query'][read_ref_end]
-            query_start = get_pos['find_query'][self.start]
+            query_start = get_pos['find_query'][ref_pos]
             query_name = read.query_name
             modbase_key = ('C', 1, 'm') if read.is_reverse else ('C', 0, 'm')
             strand = '-' if read.is_reverse else '+'
