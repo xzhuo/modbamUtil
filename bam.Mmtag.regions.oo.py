@@ -60,7 +60,7 @@ class Interval:
                 modbase_pos_perc = list(zip(modbase_rel_pos_list, modbase_ref_list, modbase_perc_list))
             except:
                 modbase_pos_perc = []
-        self.modbase_list.append({'read': query_name, 'strand': strand, 'modbase_pos_perc': modbase_pos_perc})
+            self.modbase_list.append({'read': query_name, 'strand': strand, 'modbase_pos_perc': modbase_pos_perc})
 
 
 def convert_pos(read):
