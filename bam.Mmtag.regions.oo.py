@@ -47,6 +47,7 @@ class Interval:
             get_pos = convert_pos(read)
             query_flanking_start = get_pos['find_query'][read_ref_start]
             query_flanking_end = get_pos['find_query'][read_ref_end]
+            query_start = get_pos['find_query'][self.start]
             query_name = read.query_name
             modbase_key = ('C', 1, 'm') if read.is_reverse else ('C', 0, 'm')
             strand = '-' if read.is_reverse else '+'
@@ -54,7 +55,7 @@ class Interval:
                 modbase_list = read.modified_bases[modbase_key]
                 modbase_query_list = [j[0] for j in list(filter(lambda i: i[0] >= query_flanking_start and i[0] < query_flanking_end, modbase_list))]
                 modbase_ref_list = [get_pos['find_ref'][i] if i in get_pos['find_ref'] else -1 for i in modbase_query_list]
-                modbase_rel_pos_list = [i - self.start for i in modbase_query_list]
+                modbase_rel_pos_list = [i - query_start for i in modbase_query_list]
                 modbase_perc_list = [j[1]/255 for j in list(filter(lambda i: i[0] >= query_flanking_start and i[0] < query_flanking_end, modbase_list))]
                 modbase_pos_perc = list(zip(modbase_rel_pos_list, modbase_ref_list, modbase_perc_list))
             except:
