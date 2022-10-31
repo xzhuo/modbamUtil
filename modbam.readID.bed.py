@@ -42,7 +42,7 @@ with ModBam(args.bam) as bam:
                 modified-base score (scaled to 0-255)."""
                 pos = pos_mod[1]
                 strand = pos_mod[3]
-                if not output[chrom][pos].has_key("strand"):
+                if not "strand" in output[chrom][pos]:
                     output[chrom][pos]["strand"] = strand
                 if pos_mod[1] > start and pos_mod[1] <= end:
                     if pos_mod[7]/255 > 0.5:
