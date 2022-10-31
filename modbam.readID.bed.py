@@ -55,7 +55,7 @@ with ModBam(args.bam) as bam:
     with open(args.out, "w") as out:
         for chrom in output:
             for pos in output[chrom]:
-                out.write("{:s}\t{:i}\t{:s}\t{:s}\t{:s}\n".format(
+                out.write("{:s}\t{:d}\t{:s}\t{:s}\t{:s}\n".format(
                     chrom, pos, output[chrom][pos]["strand"], ",".join(output[chrom][pos]["methylated"]), ",".join(output[chrom][pos]["unmethylated"])))
 
 end_time = time.time()
