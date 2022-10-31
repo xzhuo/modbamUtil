@@ -24,7 +24,8 @@ with open(args.chrom, 'r') as f:  # read the chrom size file
         size_list.append(chrom_dict)
 
 with ModBam(args.bam) as bam:
-    output = defaultdict(dict)
+    nested_dict = lambda: defaultdict(nested_dict)
+    output = nested_dict()
     for chrom_size in size_list:
         chrom = chrom_size["chrom"]
         start = chrom_size["start"]
@@ -42,7 +43,7 @@ with ModBam(args.bam) as bam:
                 modified-base score (scaled to 0-255)."""
                 pos = pos_mod[1]
                 strand = pos_mod[3]
-                if not "strand" in output[chrom][pos]:
+                if "strand" not in output[chrom][pos]:
                     output[chrom][pos]["strand"] = strand
                 if pos_mod[1] > start and pos_mod[1] <= end:
                     if pos_mod[7]/255 > 0.5:
