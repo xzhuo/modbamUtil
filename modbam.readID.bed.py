@@ -43,8 +43,9 @@ with ModBam(args.bam) as bam:
                 modified-base score (scaled to 0-255)."""
                 pos = pos_mod[1]
                 strand = pos_mod[3]
-                if "strand" not in output[chrom][pos]:
-                    output[chrom][pos]["strand"] = strand
+                if pos not in output[chrom]:
+                    output[chrom][pos] = {"strand": strand, "methylated": [], "unmethylated": []}
+
                 if pos_mod[1] > start and pos_mod[1] <= end:
                     if pos_mod[7]/255 > 0.5:
                         output[chrom][pos]["methylated"].append(pos_mod[0])
