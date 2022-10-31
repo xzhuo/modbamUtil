@@ -7,7 +7,7 @@ parser = argparse.ArgumentParser(description='calculate CpG methylation average 
 parser.add_argument('-b', '--bam', type=str, required=True,
                     help='input bam file with Mm and Ml tags')
 parser.add_argument('-c', '--chrom', type=str, required=True,
-                    help='input chromSize file')
+                    help='input chromsize file')
 parser.add_argument('-w', '--window', type=int, default=100000000,
                     help='processing window size')
 parser.add_argument('-o', '--out', type=str, required=True,
@@ -17,7 +17,7 @@ args = parser.parse_args()
 
 size_list = []
 start_time = time.time()
-with open(args.size, 'r') as f:  # read the region file
+with open(args.chrom, 'r') as f:  # read the chrom size file
     for line in f.readlines():
         chrom_list = line.strip().split()
         chrom_dict = {"chrom": chrom_list[0], "start": 0, "end": int(chrom_list[1])}
