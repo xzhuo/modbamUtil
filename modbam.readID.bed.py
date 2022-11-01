@@ -84,9 +84,10 @@ def main():
         with WorkerPool(n_jobs=args.threads) as pool:
             outputs = pool.imap(process_bam, zip(repeat(bam_file), size_list), iterable_len=len(size_list), progress_bar=True)
 
-    outputs.sort(key=lambda x: (x[0],x[1]))
+    flat_outputs = [item for batch in outputs for item in batch]
+    flat_outputs.sort(key=lambda x: (x[0],x[1]))
     with open(args.out, "w") as out:
-        for line in outputs:
+        for line in flat_outputs:
                 out.write("{:s}\t{:d}\t{:s}\t{:s}\t{:s}\n".format(
                     line[0], line[1], line[2], line[3], line[4]))
 
