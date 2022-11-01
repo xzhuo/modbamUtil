@@ -92,3 +92,6 @@ def main():
 
     end_time = time.time()
     print("--- %s hours ---" % ((end_time - start_time)/3600))
+
+if __name__ == '__main__':
+    main()
