@@ -88,8 +88,9 @@ def main():
     flat_outputs.sort(key=lambda x: (x[0],x[1]))
     with open(args.out, "w") as out:
         for line in flat_outputs:
-                out.write("{:s}\t{:d}\t{:s}\t{:s}\t{:s}\n".format(
-                    line[0], line[1], line[2], line[3], line[4]))
+                if line[1] >= 0:
+                    out.write("{:s}\t{:d}\t{:s}\t{:s}\t{:s}\n".format(
+                        line[0], line[1], line[2], line[3], line[4]))
 
     end_time = time.time()
     print("--- %s hours ---" % ((end_time - start_time)/3600))
