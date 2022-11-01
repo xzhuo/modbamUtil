@@ -27,11 +27,11 @@ def process_bam(bam_file, window_dict):
                 modified base,
                 modified-base score (scaled to 0-255)."""
                 pos = pos_mod[1]
-                strand = pos_mod[3]
-                if pos not in output[chrom]:
-                    output[chrom][pos] = {"strand": strand, "methylated": [], "unmethylated": []}
+                if pos > start and pos <= end:
+                    strand = pos_mod[3]
+                    if pos not in output[chrom]:
+                        output[chrom][pos] = {"strand": strand, "methylated": [], "unmethylated": []}
 
-                if pos_mod[1] > start and pos_mod[1] <= end:
                     if pos_mod[7]/255 > 0.5:
                         output[chrom][pos]["methylated"].append(pos_mod[0])
                     else:
@@ -43,13 +43,15 @@ def process_bam(bam_file, window_dict):
 
     return outfile_list
 
-def process_chromsize(chromsize_file):
+def process_chromsize(chromsize_file, window):
     size_list = []
     with open(chromsize_file, 'r') as f:  # read the chrom size file
         for line in f.readlines():
             chrom_list = line.strip().split()
-            chrom_dict = {"chrom": chrom_list[0], "start": 0, "end": int(chrom_list[1])}
-            size_list.append(chrom_dict)
+            for i in range(0,int(chrom_list[1]),window):
+                if i > 0:
+                    size_list.append({"chrom": chrom_list[0], "start": last_i, "end": i})
+                last_i = i
     return size_list
 
 def main():
@@ -74,7 +76,7 @@ def main():
         raise ValueError("--chromsize file does not exist!")
 
     start_time = time.time()
-    size_list = process_chromsize(chromsize_file)
+    size_list = process_chromsize(chromsize_file, args.window)
 
     outputs = []
     if args.threads == 1:
