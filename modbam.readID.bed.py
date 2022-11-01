@@ -52,6 +52,7 @@ def process_chromsize(chromsize_file, window):
                 if i > 0:
                     size_list.append({"chrom": chrom_list[0], "start": last_i, "end": i})
                 last_i = i
+            size_list.append({"chrom": chrom_list[0], "start": last_i, "end": int(chrom_list[1])})
     return size_list
 
 def main():
