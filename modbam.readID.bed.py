@@ -39,7 +39,7 @@ def process_bam(bam_file, window_dict):
 
     for chrom in output:
         for pos in output[chrom]:
-            outfile_list.append(chrom, pos, output[chrom][pos]["strand"], ",".join(output[chrom][pos]["methylated"]), ",".join(output[chrom][pos]["unmethylated"]))
+            outfile_list.append([chrom, pos, output[chrom][pos]["strand"], ",".join(output[chrom][pos]["methylated"]), ",".join(output[chrom][pos]["unmethylated"])])
 
     return outfile_list
 
