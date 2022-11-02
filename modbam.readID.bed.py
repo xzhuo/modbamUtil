@@ -16,7 +16,8 @@ def process_bam(bam_file, window_dict):
         nested_dict = lambda: defaultdict(nested_dict)
         output = nested_dict()
         for read in bam.reads(chrom, start, end):
-            # print(read.mod_sites)
+            if read.is_secondary or read.is_supplementary or read.is_unmapped:
+                continue
             for pos_mod in read.mod_sites:
                 """read_id,
                 reference position,
