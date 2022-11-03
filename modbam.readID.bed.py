@@ -64,7 +64,7 @@ def main():
                         help='input bam file with Mm and Ml tags')
     parser.add_argument('-c', '--chrom', type=str, required=True,
                         help='input chromsize file')
-    parser.add_argument('-w', '--window', type=int, default=100000000,
+    parser.add_argument('-w', '--window', type=int, default=10000000,
                         help='processing window size')
     parser.add_argument('-o', '--out', type=str, required=True,
                         help='output bed like txt file storing the methylation data in the defined regions')
