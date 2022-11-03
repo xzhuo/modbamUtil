@@ -57,7 +57,7 @@ def process_chromsize(chromsize_file, window):
     return size_list
 
 def main():
-    parser = argparse.ArgumentParser(description='the bam file')
+    parser = argparse.ArgumentParser(description='parser the bam file and summarize which reads are methylated/unmethylated at each CpG site')
     parser.add_argument('-t', '--threads', type=int, default=1,
                         help='multi-threading')
     parser.add_argument('-b', '--bam', type=str, required=True,
