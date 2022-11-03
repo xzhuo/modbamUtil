@@ -42,7 +42,7 @@ def main():
     parser = argparse.ArgumentParser(description='parser the pos bed like file to calculate methylation epiallele using LD or fisher exact test')
     parser.add_argument('-t', '--threads', type=int, default=1,
                         help='multi-threading')
-    parser.add_argument('-i', '--in', type=str, required=True,
+    parser.add_argument('-i', '--input', type=str, required=True,
                         help='input bed like file with pos and read ID separated by methylation calls')
     parser.add_argument('-w', '--window', type=int, default=10000000,
                         help='processing window chunk size')
@@ -50,7 +50,7 @@ def main():
                         help='output txt file storing the methylation epiallele linkage')
 
     args = parser.parse_args()
-    input_file = os.path.abspath(args.in)
+    input_file = os.path.abspath(args.input)
     if not os.path.exists(input_file):
         raise ValueError("--input bed like file does not exist!")
 
