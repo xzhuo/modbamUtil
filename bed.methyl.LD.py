@@ -6,7 +6,7 @@ from mpire import WorkerPool
 from itertools import repeat
 
 def process_line(line):
-    line_list = line.strip().split()
+    line_list = line.strip().split("\t")
     chrom=line_list[0]
     pos=line_list[1]
     methylation_set=set(line_list[2].split(","))
