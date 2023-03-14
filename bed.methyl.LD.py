@@ -1,7 +1,7 @@
 import os
 import argparse
 import time
-import scipy
+from scipy import stats
 from mpire import WorkerPool
 from itertools import repeat
 
@@ -28,7 +28,7 @@ def process_input(input_file):
                     both_unmet = len(unmet.intersection(last_unmet))
                     unmet_met = len(met.intersection(last_unmet))
                     met_unmet = len(unmet.intersection(last_met))
-                    fisher_ratio, fisher_p = scipy.stats.fisher_exact(table=[[both_met,unmet_met],[met_unmet,both_unmet]], alternative="greater")
+                    fisher_ratio, fisher_p = stats.fisher_exact(table=[[both_met,unmet_met],[met_unmet,both_unmet]], alternative="greater")
                     out_list.append([chrom, pos, distance, fisher_ratio, fisher_p])
             last_line = line
 
