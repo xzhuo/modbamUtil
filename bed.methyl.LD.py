@@ -9,8 +9,14 @@ def process_line(line):
     line_list = line.strip().split("\t")
     chrom=line_list[0]
     pos=line_list[1]
-    methylation_set=set(line_list[2].split(","))
-    unmethylation_set=set(line_list[3].split(","))
+    try:
+        methylation_set=set(line_list[2].split(","))
+    except IndexError:
+        methylation_set=set()
+    try:
+        unmethylation_set=set(line_list[3].split(","))
+    except IndexError:
+        unmethylation_set=set()
 
     return chrom, pos, methylation_set, unmethylation_set
 
