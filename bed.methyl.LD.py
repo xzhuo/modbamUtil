@@ -9,10 +9,10 @@ def process_line(line):
     line_list = line.strip().split()
     chrom=line_list[0]
     pos=line_list[1]
-    methylation_list=line_list[2].split(",")
-    unmethylation_list=line_list[3].split(",")
+    methylation_set=set(line_list[2].split(","))
+    unmethylation_set=set(line_list[3].split(","))
 
-    return chrom, pos, methylation_list, unmethylation_list
+    return chrom, pos, methylation_set, unmethylation_set
 
 def process_input(input_file):
     out_list = []
@@ -24,14 +24,10 @@ def process_input(input_file):
                 last_chrom, last_pos, last_met, last_unmet = process_line(last_line)
                 if chrom == last_chrom:
                     distance = int(pos) - int(last_pos)
-                    met_set = set(met.split(","))
-                    unmet_set = set(unmet.split(","))
-                    last_met_set = set(last_met.split(","))
-                    last_unmet_set = set(last_unmet.split(","))
-                    both_met = len(met_set.intersection(last_met_set))
-                    both_unmet = len(unmet_set.intersection(last_unmet_set))
-                    unmet_met = len(met_set.intersection(last_unmet_set))
-                    met_unmet = len(unmet_set.intersection(last_met_set))
+                    both_met = len(met.intersection(last_met))
+                    both_unmet = len(unmet.intersection(last_unmet))
+                    unmet_met = len(met.intersection(last_unmet))
+                    met_unmet = len(unmet.intersection(last_met))
                     fisher_ratio, fisher_p = scipy.stats.fisher_exact(table=[[both_met,unmet_met],[met_unmet,both_unmet]], alternative="greater")
                     out_list.append([chrom, pos, distance, fisher_ratio, fisher_p])
             last_line = line
