@@ -17,8 +17,9 @@ def process_line(line):
 def process_input(input_file):
     out_list = []
     with open(input_file, 'r') as f:  # read the chrom size file
+        last_line = ""
         for line in f.readlines():
-            if last_line:
+            if last_line != "":
                 chrom, pos, met, unmet = process_line(line)
                 last_chrom, last_pos, last_met, last_unmet = process_line(last_line)
                 if chrom == last_chrom:
