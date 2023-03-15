@@ -36,7 +36,8 @@ def process_input(input_file):
                     unmet_met = len(met.intersection(last_unmet))
                     met_unmet = len(unmet.intersection(last_met))
                     fisher_ratio, fisher_p = stats.fisher_exact(table=[[both_met,unmet_met],[met_unmet,both_unmet]], alternative="greater")
-                    out_list.append([chrom, int(pos), distance, fisher_ratio, -math.log10(fisher_p) + 0])  # get the log10 p value and add 0 to get rid of the -0.0
+                    log_fisher_p = -math.log10(fisher_p) + 0 if fisher_p > 0 else float("inf")  # get the log10 p value and add 0 to get rid of the -0.0 or return inf if p value is 0.
+                    out_list.append([chrom, int(pos), distance, fisher_ratio, log_fisher_p])
             last_line = line
 
     return out_list
