@@ -2,6 +2,7 @@ import os
 import argparse
 import time
 from scipy import stats
+import math
 from mpire import WorkerPool
 from itertools import repeat
 
@@ -35,7 +36,7 @@ def process_input(input_file):
                     unmet_met = len(met.intersection(last_unmet))
                     met_unmet = len(unmet.intersection(last_met))
                     fisher_ratio, fisher_p = stats.fisher_exact(table=[[both_met,unmet_met],[met_unmet,both_unmet]], alternative="greater")
-                    out_list.append([chrom, int(pos), distance, fisher_ratio, fisher_p])
+                    out_list.append([chrom, int(pos), distance, fisher_ratio, -math.log10(fisher_p)])
             last_line = line
 
     return out_list
@@ -63,7 +64,7 @@ def main():
     out_list = process_input(input_file)
     with open(args.out, "w") as out:
         for line in out_list:
-            out.write("{:s}\t{:d}\t{:d}\t{:0.4f}\t{:0.4f}\n".format(
+            out.write("{:s}\t{:d}\t{:d}\t{:0.2f}\t{:0.8f}\n".format(
                 line[0], line[1], line[2], line[3], line[4]))
     end_time = time.time()
     print("--- %s hours ---" % ((end_time - start_time)/3600))
