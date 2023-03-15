@@ -63,7 +63,7 @@ def main():
     out_list = process_input(input_file)
     with open(args.out, "w") as out:
         for line in out_list:
-            out.write("{:s}\t{:d}\t{:d}\t{:s}\t{:s}\n".format(
+            out.write("{:s}\t{:d}\t{:d}\t{:0.4f}\t{:0.4f}\n".format(
                 line[0], line[1], line[2], line[3], line[4]))
     end_time = time.time()
     print("--- %s hours ---" % ((end_time - start_time)/3600))
