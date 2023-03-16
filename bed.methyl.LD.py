@@ -80,7 +80,7 @@ def main():
     start_time = time.time()
     infile_array = []
     out_list = []
-    with open(input, 'r') as f:  # read the bed file
+    with open(input_file, 'r') as f:  # read the bed file
         for line in f.readlines():
             infile_array.append(line.strip())
 
