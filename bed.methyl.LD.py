@@ -87,7 +87,7 @@ def main():
     # out_list = process_input(input_file)
 
     with WorkerPool(n_jobs=args.threads) as pool:
-        outputs = pool.imap(process_lines, zip(infile_array[1:], infile_array[:-1]), iterable_len=len(infile_array) - 1, progress_bar=True)
+        out_list = pool.imap(process_lines, zip(infile_array[1:], infile_array[:-1]), iterable_len=len(infile_array) - 1, progress_bar=True)
     with open(args.out, "w") as out:
         for line in out_list:
             out.write("{:s}\t{:d}\t{:d}\t{:d}\t{:0.2f}\t{:0.2f}\t{:0.4f}\n".format(
