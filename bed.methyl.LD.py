@@ -110,6 +110,8 @@ def main():
         out_list = pool.imap(process_arrays, range(1, len(infile_array)), iterable_len=len(infile_array) - 1, progress_bar=True)
     with open(args.out, "w") as out:
         for line in out_list:
+            if line == []:
+                continue
             out.write("{:s}\t{:d}\t{:d}\t{:d}\t{:0.2f}\t{:0.2f}\t{:0.4f}\n".format(
                 line[0], line[1], line[2], line[3], line[4], line[5], line[6]))
     end_time = time.time()
