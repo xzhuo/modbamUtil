@@ -69,8 +69,8 @@ def main():
                         help='input chromsize file')
     parser.add_argument('-w', '--window', type=int, default=10000000,
                         help='processing window size')
-    parser.add_argument('-m', '--merge', type=bool, default=True,
-                        help='Merge both strand or not')
+    parser.add_argument('-m', '--merge', action=argparse.BooleanOptionalAction, default=True,
+                        help='merge both strand or not')
     parser.add_argument('-o', '--out', type=str, required=True,
                         help='output bed like txt file storing the methylation data in the defined regions')
 
