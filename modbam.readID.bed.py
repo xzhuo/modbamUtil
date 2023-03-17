@@ -7,7 +7,7 @@ import time
 from mpire import WorkerPool
 from itertools import repeat
 
-def process_bam(bam_file, window_dict):
+def process_bam(bam_file, window_dict, merge):
     chrom = window_dict["chrom"]
     start = window_dict["start"]
     end = window_dict["end"]
@@ -30,6 +30,9 @@ def process_bam(bam_file, window_dict):
                 pos = pos_mod[1]
                 if pos > start and pos <= end:
                     strand = pos_mod[3]
+                    if merge:
+                        pos = pos if strand == "+" else pos - 1
+                        strand = "."
                     if pos not in output[chrom]:
                         output[chrom][pos] = {"strand": strand, "methylated": [], "unmethylated": []}
 
@@ -66,6 +69,8 @@ def main():
                         help='input chromsize file')
     parser.add_argument('-w', '--window', type=int, default=10000000,
                         help='processing window size')
+    parser.add_argument('-m', '--merge', type=bool, default=True,
+                        help='Merge both strand or not')
     parser.add_argument('-o', '--out', type=str, required=True,
                         help='output bed like txt file storing the methylation data in the defined regions')
 
@@ -83,10 +88,10 @@ def main():
     outputs = []
     if args.threads == 1:
         for i in size_list:
-            outputs.append(process_bam(bam_file, i))
+            outputs.append(process_bam(bam_file, i, args.merge))
     else:
         with WorkerPool(n_jobs=args.threads) as pool:
-            outputs = pool.imap(process_bam, zip(repeat(bam_file), size_list), iterable_len=len(size_list), progress_bar=True)
+            outputs = pool.imap(process_bam, zip(repeat(bam_file), size_list, repeat(args.merge)), iterable_len=len(size_list), progress_bar=True)
 
     flat_outputs = [item for batch in outputs for item in batch]
     flat_outputs.sort(key=lambda x: (x[0],x[1]))
