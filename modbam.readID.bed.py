@@ -1,6 +1,7 @@
 import os
 from collections import defaultdict
 from concurrent.futures import process
+import pysam
 from modbampy import ModBam
 import argparse
 import time
@@ -47,16 +48,24 @@ def process_bam(bam_file, window_dict, merge):
 
     return outfile_list
 
-def process_chromsize(chromsize_file, window):
+def process_chromsize(bam_file, window):
     size_list = []
-    with open(chromsize_file, 'r') as f:  # read the chrom size file
-        for line in f.readlines():
-            chrom_list = line.strip().split()
-            for i in range(0,int(chrom_list[1]),window):
-                if i > 0:
-                    size_list.append({"chrom": chrom_list[0], "start": last_i, "end": i})
-                last_i = i
-            size_list.append({"chrom": chrom_list[0], "start": last_i, "end": int(chrom_list[1])})
+    bam = pysam.AlignmentFile(bam_file)
+    chrom_sizes = zip(bam.references, bam.lengths)
+    for chrom, size in chrom_sizes:
+        for i in range(0,size,window):
+            if i > 0:
+                size_list.append({"chrom": chrom, "start": last_i, "end": i})
+            last_i = i
+        size_list.append({"chrom": chrom, "start": last_i, "end": size})
+    # with open(chromsize_file, 'r') as f:  # read the chrom size file
+    #     for line in f.readlines():
+    #         chrom_list = line.strip().split()
+    #         for i in range(0,int(chrom_list[1]),window):
+    #             if i > 0:
+    #                 size_list.append({"chrom": chrom_list[0], "start": last_i, "end": i})
+    #             last_i = i
+    #         size_list.append({"chrom": chrom_list[0], "start": last_i, "end": int(chrom_list[1])})
     return size_list
 
 def main():
@@ -65,8 +74,6 @@ def main():
                         help='multi-threading')
     parser.add_argument('-b', '--bam', type=str, required=True,
                         help='input bam file with Mm and Ml tags')
-    parser.add_argument('-c', '--chrom', type=str, required=True,
-                        help='input chromsize file')
     parser.add_argument('-w', '--window', type=int, default=10000000,
                         help='processing window size')
     parser.add_argument('-m', '--merge', action=argparse.BooleanOptionalAction, default=True,
@@ -76,14 +83,11 @@ def main():
 
     args = parser.parse_args()
     bam_file = os.path.abspath(args.bam)
-    chromsize_file = os.path.abspath(args.chrom)
     if not os.path.exists(bam_file):
         raise ValueError("--bam file does not exist!")
-    if not os.path.exists(chromsize_file):
-        raise ValueError("--chromsize file does not exist!")
 
     start_time = time.time()
-    size_list = process_chromsize(chromsize_file, args.window)
+    size_list = process_chromsize(bam_file, args.window)
 
     outputs = []
     if args.threads == 1:
