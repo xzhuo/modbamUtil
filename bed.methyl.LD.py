@@ -11,11 +11,11 @@ def process_line(line):
     chrom=line_list[0]
     pos=line_list[1]
     try:
-        methylation_set=set(line_list[2].split(","))
+        methylation_set=set(line_list[3].split(","))
     except IndexError:
         methylation_set=set()
     try:
-        unmethylation_set=set(line_list[3].split(","))
+        unmethylation_set=set(line_list[4].split(","))
     except IndexError:
         unmethylation_set=set()
 
