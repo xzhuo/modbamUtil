@@ -97,6 +97,14 @@ def main():
         with WorkerPool(n_jobs=args.threads) as pool:
             outputs = pool.imap(process_bam, zip(repeat(bam_file), size_list, repeat(args.merge)), iterable_len=len(size_list), progress_bar=True)
 
+    # merge the adjacent windows if they are of the same coordinate:
+    for i, batch in enumerate(outputs):
+        if i > 0:
+            if outputs[i-1][-1][0] == batch[0][0] and outputs[i-1][-1][1] == batch[0][1]:
+                outputs[i-1][3] = outputs[i-1][3] + "," + batch[0][3]
+                outputs[i-1][4] = outputs[i-1][4] + "," + batch[0][4]
+                outputs[i] = outputs[i][1:]
+
     flat_outputs = [item for batch in outputs for item in batch]
     flat_outputs.sort(key=lambda x: (x[0],x[1]))
     with open(args.out, "w") as out:
