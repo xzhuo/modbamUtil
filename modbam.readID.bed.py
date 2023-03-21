@@ -99,7 +99,7 @@ def main():
 
     # merge the adjacent windows if they are of the same coordinate:
     for i, batch in enumerate(outputs):
-        if i > 0:
+        if i > 0 and len(batch) > 0 and len(outputs[i-1]) > 0:
             if outputs[i-1][-1][0] == batch[0][0] and outputs[i-1][-1][1] == batch[0][1]:
                 outputs[i-1][-1][3] = outputs[i-1][-1][3] + "," + batch[0][3]
                 outputs[i-1][-1][4] = outputs[i-1][-1][4] + "," + batch[0][4]
