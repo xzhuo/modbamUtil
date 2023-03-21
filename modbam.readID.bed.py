@@ -12,7 +12,7 @@ def process_bam(bam_file, window_dict, merge):
     chrom = window_dict["chrom"]
     start = window_dict["start"]
     end = window_dict["end"]
-    outfile_list = []
+    out_list = []
     with ModBam(bam_file) as bam:
         nested_dict = lambda: defaultdict(nested_dict)
         output = nested_dict()
@@ -44,9 +44,9 @@ def process_bam(bam_file, window_dict, merge):
 
     for chrom in output:
         for pos in output[chrom]:
-            outfile_list.append([chrom, pos, output[chrom][pos]["strand"], ",".join(output[chrom][pos]["methylated"]), ",".join(output[chrom][pos]["unmethylated"])])
+            out_list.append([chrom, pos, output[chrom][pos]["strand"], output[chrom][pos]["methylated"], output[chrom][pos]["unmethylated"]])
 
-    return outfile_list
+    return out_list
 
 def process_chromsize(bam_file, window):
     size_list = []
@@ -95,23 +95,22 @@ def main():
             outputs.append(process_bam(bam_file, i, args.merge))
     else:
         with WorkerPool(n_jobs=args.threads) as pool:
-            outputs = pool.map(process_bam, zip(repeat(bam_file), size_list, repeat(args.merge)), iterable_len=len(size_list), progress_bar=True)
-
-    # merge the adjacent windows if they are of the same coordinate:
-    for i, batch in enumerate(outputs):
-        if i > 0 and len(batch) > 0 and len(outputs[i-1]) > 0:
-            if outputs[i-1][-1][0] == batch[0][0] and outputs[i-1][-1][1] == batch[0][1]:
-                outputs[i-1][-1][3] = outputs[i-1][-1][3] + "," + batch[0][3]
-                outputs[i-1][-1][4] = outputs[i-1][-1][4] + "," + batch[0][4]
-                outputs[i] = outputs[i][1:]
+            outputs = pool.imap(process_bam, zip(repeat(bam_file), size_list, repeat(args.merge)), iterable_len=len(size_list), progress_bar=True)
 
     flat_outputs = [item for batch in outputs for item in batch]
     flat_outputs.sort(key=lambda x: (x[0],x[1]))
+    # merge the adjacent lines if they are of the same coordinate:
+    for i in range(1, len(flat_outputs)):
+        if flat_outputs[i][0] == flat_outputs[i-1][0] and flat_outputs[i][1] == flat_outputs[i-1][1]:
+            flat_outputs[i-1][3].extend(flat_outputs[i][3])
+            flat_outputs[i-1][4].extend(flat_outputs[i][4])
+            flat_outputs.pop(i)
+
     with open(args.out, "w") as out:
         for line in flat_outputs:
                 if line[1] >= 0:
                     out.write("{:s}\t{:d}\t{:s}\t{:s}\t{:s}\n".format(
-                        line[0], line[1], line[2], line[3], line[4]))
+                        line[0], line[1], line[2], ",".join(line[3]), ",".join(line[4])))
 
     end_time = time.time()
     print("--- %s hours ---" % ((end_time - start_time)/3600))
