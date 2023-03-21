@@ -44,7 +44,7 @@ def process_bam(bam_file, window_dict, merge):
 
     for chrom in output:
         for pos in output[chrom]:
-            out_list.append([chrom, pos, output[chrom][pos]["strand"], output[chrom][pos]["methylated"], output[chrom][pos]["unmethylated"]])
+            out_list.append([chrom, pos, output[chrom][pos]["strand"], ",".join(output[chrom][pos]["methylated"]), ",".join(output[chrom][pos]["unmethylated"])])
 
     return out_list
 
@@ -102,8 +102,8 @@ def main():
     # merge the adjacent lines if they are of the same coordinate:
     for i in range(1, len(flat_outputs)):
         if flat_outputs[i][0] == flat_outputs[i-1][0] and flat_outputs[i][1] == flat_outputs[i-1][1]:
-            flat_outputs[i-1][3].extend(flat_outputs[i][3])
-            flat_outputs[i-1][4].extend(flat_outputs[i][4])
+            flat_outputs[i-1][3] = flat_outputs[i-1][3] if flat_outputs[i][3] == "" else (flat_outputs[i][3] if flat_outputs[i-1][3] == "" else flat_outputs[i-1][3] + "," + flat_outputs[i][3])
+            flat_outputs[i-1][4] = flat_outputs[i-1][4] if flat_outputs[i][4] == "" else (flat_outputs[i][4] if flat_outputs[i-1][4] == "" else flat_outputs[i-1][4] + "," + flat_outputs[i][4])
             flat_outputs.pop(i)
 
     with open(args.out, "w") as out:
