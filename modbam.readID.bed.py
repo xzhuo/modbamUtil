@@ -101,7 +101,7 @@ def main():
     flat_outputs.sort(key=lambda x: (x[0],x[1]))
     # merge the adjacent lines if they are of the same coordinate:
     for i in range(1, len(flat_outputs)):
-        if flat_outputs[i][0] == flat_outputs[i-1][0] and flat_outputs[i][1] == flat_outputs[i-1][1]:
+        if len(flat_outputs[i]) and len(flat_outputs[i-1]) and flat_outputs[i][0] == flat_outputs[i-1][0] and flat_outputs[i][1] == flat_outputs[i-1][1]:
             flat_outputs[i-1][3] = flat_outputs[i-1][3] if flat_outputs[i][3] == "" else (flat_outputs[i][3] if flat_outputs[i-1][3] == "" else flat_outputs[i-1][3] + "," + flat_outputs[i][3])
             flat_outputs[i-1][4] = flat_outputs[i-1][4] if flat_outputs[i][4] == "" else (flat_outputs[i][4] if flat_outputs[i-1][4] == "" else flat_outputs[i-1][4] + "," + flat_outputs[i][4])
             flat_outputs.pop(i)
