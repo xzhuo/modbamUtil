@@ -102,7 +102,7 @@ def main():
     flat_outputs.sort(key=lambda x: (x[0],x[1]))
     # merge the adjacent lines if they are of the same coordinate:
     combined = pybedtools.BedTool(flat_outputs)
-    combined.groupby(g=[1,2,3], c=[4,5], o="collapse").saveas(args.out)
+    combined.groupby(g=[1,2,3], c=[4,5], o="collapse",output=args.out)
 
     # with open(args.out, "w") as out:
     #     for line in flat_outputs:
