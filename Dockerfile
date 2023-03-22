@@ -2,7 +2,7 @@ FROM conda/miniconda3
 
 RUN conda config --add channels bioconda \
     && conda config --add channels conda-forge \
-    && conda install -y git bedtools htslib pysam mpire scipy
+    && conda install -y git pybedtools pysam mpire scipy
 RUN pip install modbampy
 
 # https://stackoverflow.com/questions/36996046/how-to-prevent-dockerfile-caching-git-clone
