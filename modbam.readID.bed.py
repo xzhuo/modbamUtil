@@ -3,7 +3,6 @@ from collections import defaultdict
 from concurrent.futures import process
 import pysam
 from modbampy import ModBam
-import pybedtools
 import argparse
 import time
 from mpire import WorkerPool
@@ -73,11 +72,12 @@ def process_chromsize(bam_file, window):
     return size_list
 
 def process_cpg(cg_file):
-    cpg_dict = {}
+    nested_dict = lambda: defaultdict(nested_dict)
+    cpg_dict = nested_dict()
     with open(cg_file, 'r') as f:  # read the chrom size file
         for line in f.readlines():
             line_list = line.strip().split()
-            cpg_dict[line_list[0]] = line_list[1]
+            cpg_dict[line_list[0]][line_list[1]] = 1
     return cpg_dict
 
 def main():
@@ -101,7 +101,7 @@ def main():
         raise ValueError("--bam file does not exist!")
 
     start_time = time.time()
-    cg_dict = None
+    cg_dict = {}
     if args.cg is not None:
         cg_file = os.path.abspath(args.cg)
         if not os.path.exists(cg_file):
@@ -116,19 +116,22 @@ def main():
             outputs.append(process_bam(bam_file, i, args.merge, cg_dict))
     else:
         with WorkerPool(n_jobs=args.threads) as pool:
-            outputs = pool.imap(process_bam, zip(repeat(bam_file), size_list, repeat(args.merge)), iterable_len=len(size_list), progress_bar=True)
+            outputs = pool.imap(process_bam, zip(repeat(bam_file), size_list, repeat(args.merge), repeat(cg_dict)), iterable_len=len(size_list), progress_bar=True)
 
     flat_outputs = [item for batch in outputs for item in batch]
     flat_outputs.sort(key=lambda x: (x[0],x[1]))
     # merge the adjacent lines if they are of the same coordinate:
-    combined = pybedtools.BedTool(flat_outputs)
-    combined.groupby(g=[1,2,3], c=[4,5], o="collapse",output=args.out)
+    for i in range(len(flat_outputs),1,-1):
+        if flat_outputs[i][0] == flat_outputs[i-1][0] and flat_outputs[i][1] == flat_outputs[i-1][1]:
+            flat_outputs[i-1][3] = flat_outputs[i-1][3] if flat_outputs[i][3] == "" else (flat_outputs[i][3] if flat_outputs[i-1][3] == "" else flat_outputs[i-1][3] + "," + flat_outputs[i][3])
+            flat_outputs[i-1][4] = flat_outputs[i-1][4] if flat_outputs[i][4] == "" else (flat_outputs[i][4] if flat_outputs[i-1][4] == "" else flat_outputs[i-1][4] + "," + flat_outputs[i][4])
+            flat_outputs.pop(i)
 
-    # with open(args.out, "w") as out:
-    #     for line in flat_outputs:
-    #             if line[1] >= 0:
-    #                 out.write("{:s}\t{:d}\t{:s}\t{:s}\t{:s}\n".format(
-    #                     line[0], line[1], line[2], line[3], line[4]))
+    with open(args.out, "w") as out:
+        for line in flat_outputs:
+                if line[1] >= 0:
+                    out.write("{:s}\t{:d}\t{:s}\t{:s}\t{:s}\n".format(
+                        line[0], line[1], line[2], line[3], line[4]))
 
     end_time = time.time()
     print("--- %s hours ---" % ((end_time - start_time)/3600))
