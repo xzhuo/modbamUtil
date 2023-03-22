@@ -9,7 +9,7 @@ import time
 from mpire import WorkerPool
 from itertools import repeat
 
-def process_bam(bam_file, window_dict, merge):
+def process_bam(bam_file, window_dict, merge, cg_dict):
     chrom = window_dict["chrom"]
     start = window_dict["start"]
     end = window_dict["end"]
@@ -35,6 +35,9 @@ def process_bam(bam_file, window_dict, merge):
                     if merge:
                         pos = pos if strand == "+" else pos - 1
                         strand = "."
+                    if cg_dict is not None:
+                        if chrom not in cg_dict or pos not in cg_dict[chrom]:
+                            continue
                     if pos not in output[chrom]:
                         output[chrom][pos] = {"strand": strand, "methylated": [], "unmethylated": []}
 
@@ -69,6 +72,14 @@ def process_chromsize(bam_file, window):
     #         size_list.append({"chrom": chrom_list[0], "start": last_i, "end": int(chrom_list[1])})
     return size_list
 
+def process_cpg(cg_file):
+    cpg_dict = {}
+    with open(cg_file, 'r') as f:  # read the chrom size file
+        for line in f.readlines():
+            line_list = line.strip().split()
+            cpg_dict[line_list[0]] = line_list[1]
+    return cpg_dict
+
 def main():
     parser = argparse.ArgumentParser(description='parser the bam file and summarize which reads are methylated/unmethylated at each CpG site')
     parser.add_argument('-t', '--threads', type=int, default=1,
@@ -77,6 +88,8 @@ def main():
                         help='input bam file with Mm and Ml tags')
     parser.add_argument('-w', '--window', type=int, default=10000000,
                         help='processing window size')
+    parser.add_argument('-c', '--cg', type=str, 
+                        help='reference genome CpG sites bed file. Only the CpG sites in this file will be processed if provided.')
     parser.add_argument('-m', '--merge', action=argparse.BooleanOptionalAction, default=True,
                         help='merge both strand or not')
     parser.add_argument('-o', '--out', type=str, required=True,
@@ -88,12 +101,19 @@ def main():
         raise ValueError("--bam file does not exist!")
 
     start_time = time.time()
+    cg_dict = None
+    if args.cg is not None:
+        cg_file = os.path.abspath(args.cg)
+        if not os.path.exists(cg_file):
+            raise ValueError("--cg file does not exist!")
+        cg_dict = process_cpg(cg_file)
+
     size_list = process_chromsize(bam_file, args.window)
 
     outputs = []
     if args.threads == 1:
         for i in size_list:
-            outputs.append(process_bam(bam_file, i, args.merge))
+            outputs.append(process_bam(bam_file, i, args.merge, cg_dict))
     else:
         with WorkerPool(n_jobs=args.threads) as pool:
             outputs = pool.imap(process_bam, zip(repeat(bam_file), size_list, repeat(args.merge)), iterable_len=len(size_list), progress_bar=True)
