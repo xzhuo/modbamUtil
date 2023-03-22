@@ -3,6 +3,7 @@ from collections import defaultdict
 from concurrent.futures import process
 import pysam
 from modbampy import ModBam
+import pybedtools
 import argparse
 import time
 from mpire import WorkerPool
@@ -100,17 +101,14 @@ def main():
     flat_outputs = [item for batch in outputs for item in batch]
     flat_outputs.sort(key=lambda x: (x[0],x[1]))
     # merge the adjacent lines if they are of the same coordinate:
-    for i in range(1, len(flat_outputs)):
-        if len(flat_outputs[i]) and len(flat_outputs[i-1]) and flat_outputs[i][0] == flat_outputs[i-1][0] and flat_outputs[i][1] == flat_outputs[i-1][1]:
-            flat_outputs[i-1][3] = flat_outputs[i-1][3] if flat_outputs[i][3] == "" else (flat_outputs[i][3] if flat_outputs[i-1][3] == "" else flat_outputs[i-1][3] + "," + flat_outputs[i][3])
-            flat_outputs[i-1][4] = flat_outputs[i-1][4] if flat_outputs[i][4] == "" else (flat_outputs[i][4] if flat_outputs[i-1][4] == "" else flat_outputs[i-1][4] + "," + flat_outputs[i][4])
-            flat_outputs.pop(i)
+    combined = pybedtools.BedTool(flat_outputs)
+    combined.groupby(g=[1,2,3], c=[4,5], o="collapse").saveas(args.out)
 
-    with open(args.out, "w") as out:
-        for line in flat_outputs:
-                if line[1] >= 0:
-                    out.write("{:s}\t{:d}\t{:s}\t{:s}\t{:s}\n".format(
-                        line[0], line[1], line[2], ",".join(line[3]), ",".join(line[4])))
+    # with open(args.out, "w") as out:
+    #     for line in flat_outputs:
+    #             if line[1] >= 0:
+    #                 out.write("{:s}\t{:d}\t{:s}\t{:s}\t{:s}\n".format(
+    #                     line[0], line[1], line[2], line[3], line[4]))
 
     end_time = time.time()
     print("--- %s hours ---" % ((end_time - start_time)/3600))
