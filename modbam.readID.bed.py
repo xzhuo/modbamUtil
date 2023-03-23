@@ -121,17 +121,26 @@ def main():
     flat_outputs = [item for batch in outputs for item in batch]
     flat_outputs.sort(key=lambda x: (x[0],x[1]))
     # merge the adjacent lines if they are of the same coordinate:
-    for i in range(len(flat_outputs),1,-1):
-        if flat_outputs[i][0] == flat_outputs[i-1][0] and flat_outputs[i][1] == flat_outputs[i-1][1]:
-            flat_outputs[i-1][3] = flat_outputs[i-1][3] if flat_outputs[i][3] == "" else (flat_outputs[i][3] if flat_outputs[i-1][3] == "" else flat_outputs[i-1][3] + "," + flat_outputs[i][3])
-            flat_outputs[i-1][4] = flat_outputs[i-1][4] if flat_outputs[i][4] == "" else (flat_outputs[i][4] if flat_outputs[i-1][4] == "" else flat_outputs[i-1][4] + "," + flat_outputs[i][4])
-            flat_outputs.pop(i)
+    # for i in range(len(flat_outputs),1,-1):
+    #     if flat_outputs[i][0] == flat_outputs[i-1][0] and flat_outputs[i][1] == flat_outputs[i-1][1]:
+    #         flat_outputs[i-1][3] = flat_outputs[i-1][3] if flat_outputs[i][3] == "" else (flat_outputs[i][3] if flat_outputs[i-1][3] == "" else flat_outputs[i-1][3] + "," + flat_outputs[i][3])
+    #         flat_outputs[i-1][4] = flat_outputs[i-1][4] if flat_outputs[i][4] == "" else (flat_outputs[i][4] if flat_outputs[i-1][4] == "" else flat_outputs[i-1][4] + "," + flat_outputs[i][4])
+    #         flat_outputs.pop(i)
 
     with open(args.out, "w") as out:
+        last_line = []
         for line in flat_outputs:
-                if line[1] >= 0:
-                    out.write("{:s}\t{:d}\t{:s}\t{:s}\t{:s}\n".format(
-                        line[0], line[1], line[2], line[3], line[4]))
+                if line[0] == last_line[0] and line[1] == last_line[1]:
+                    last_line[3] = last_line[3] if line[3] == "" else (line[3] if last_line[3] == "" else last_line[3] + "," + line[3])
+                    last_line[4] = last_line[4] if line[4] == "" else (line[4] if last_line[4] == "" else last_line[4] + "," + line[3])
+                else:
+                    if len(last_line):
+                        out.write("{:s}\t{:d}\t{:s}\t{:s}\t{:s}\n".format(
+                            last_line[0], last_line[1], last_line[2], last_line[3], last_line[4]))
+                    last_line = line
+        if len(last_line):
+            out.write("{:s}\t{:d}\t{:s}\t{:s}\t{:s}\n".format(
+                last_line[0], last_line[1], last_line[2], last_line[3], last_line[4]))
 
     end_time = time.time()
     print("--- %s hours ---" % ((end_time - start_time)/3600))
