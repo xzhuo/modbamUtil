@@ -72,11 +72,14 @@ def process_chromsize(bam_file, window):
     return size_list
 
 def process_cpg(cg_file):
-    cpg_dict = defaultdict(set)
+    cpg_dict = {}
     with open(cg_file, 'r') as f:  # read the chrom size file
         for line in f.readlines():
             line_list = line.strip().split()
-            cpg_dict[line_list[0]].add([line_list[1]])
+            try:
+                cpg_dict[line_list[0]].add(line_list[1])
+            except KeyError:
+                cpg_dict[line_list[0]] = {line_list[1]}
     return cpg_dict
 
 def main():
