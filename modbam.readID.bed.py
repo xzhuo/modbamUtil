@@ -35,7 +35,7 @@ def process_bam(cg_dict, bam_file, window_dict, merge):
                         pos = pos if strand == "+" else pos - 1
                         strand = "."
                     if cg_dict is not None:
-                        if chrom not in cg_dict or pos not in cg_dict[chrom]:
+                        if chrom not in cg_dict or str(pos) not in cg_dict[chrom]:
                             continue
                     if pos not in output[chrom]:
                         output[chrom][pos] = {"strand": strand, "methylated": [], "unmethylated": []}
@@ -72,12 +72,11 @@ def process_chromsize(bam_file, window):
     return size_list
 
 def process_cpg(cg_file):
-    nested_dict = lambda: defaultdict(nested_dict)
-    cpg_dict = nested_dict()
+    cpg_dict = defaultdict(set)
     with open(cg_file, 'r') as f:  # read the chrom size file
         for line in f.readlines():
             line_list = line.strip().split()
-            cpg_dict[line_list[0]][int(line_list[1])] = 1
+            cpg_dict[line_list[0]].add([line_list[1]])
     return cpg_dict
 
 def main():
