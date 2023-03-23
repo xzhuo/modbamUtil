@@ -35,7 +35,7 @@ def process_bam(cg_dict, bam_file, window_dict, merge):
                         pos = pos if strand == "+" else pos - 1
                         strand = "."
                     if cg_dict is not None:
-                        if chrom not in cg_dict or str(pos) not in cg_dict[chrom]:
+                        if chrom not in cg_dict or pos not in cg_dict[chrom]:
                             continue
                     if pos not in output[chrom]:
                         output[chrom][pos] = {"strand": strand, "methylated": [], "unmethylated": []}
@@ -77,9 +77,11 @@ def process_cpg(cg_file):
         for line in f.readlines():
             line_list = line.strip().split()
             try:
-                cpg_dict[line_list[0]].add(line_list[1])
+                cpg_dict[line_list[0]].add(int(line_list[1]))
+            except ValueError:
+                cpg_dict[line_list[0]].add(int(float(line_list[1])))
             except KeyError:
-                cpg_dict[line_list[0]] = {line_list[1]}
+                cpg_dict[line_list[0]] = {int(float(line_list[1]))}
     return cpg_dict
 
 def main():
