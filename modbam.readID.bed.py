@@ -8,7 +8,7 @@ import time
 from mpire import WorkerPool
 from itertools import repeat
 
-def process_bam(bam_file, window_dict, merge, cg_dict):
+def process_bam(cg_dict, bam_file, window_dict, merge):
     chrom = window_dict["chrom"]
     start = window_dict["start"]
     end = window_dict["end"]
@@ -113,10 +113,10 @@ def main():
     outputs = []
     if args.threads == 1:
         for i in size_list:
-            outputs.append(process_bam(bam_file, i, args.merge, cg_dict))
+            outputs.append(process_bam(cg_dict, bam_file, i, args.merge))
     else:
-        with WorkerPool(n_jobs=args.threads) as pool:
-            outputs = pool.imap(process_bam, zip(repeat(bam_file), size_list, repeat(args.merge), repeat(cg_dict)), iterable_len=len(size_list), progress_bar=True)
+        with WorkerPool(n_jobs=args.threads, shared_objects=cg_dict, start_method='fork') as pool:
+            outputs = pool.imap(process_bam, zip(repeat(bam_file), size_list, repeat(args.merge)), iterable_len=len(size_list), progress_bar=True)
 
     flat_outputs = [item for batch in outputs for item in batch]
     flat_outputs.sort(key=lambda x: (x[0],x[1]))
