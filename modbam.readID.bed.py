@@ -77,7 +77,7 @@ def process_cpg(cg_file):
     with open(cg_file, 'r') as f:  # read the chrom size file
         for line in f.readlines():
             line_list = line.strip().split()
-            cpg_dict[line_list[0]][line_list[1]] = 1
+            cpg_dict[line_list[0]][int(line_list[1])] = 1
     return cpg_dict
 
 def main():
