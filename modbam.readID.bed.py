@@ -142,6 +142,8 @@ def main():
                     out.write("{:s}\t{:d}\t{:s}\t{:s}\t{:s}\n".format(
                         last_line[0], last_line[1], last_line[2], last_line[3], last_line[4]))
                     last_line = line
+            else:
+                last_line = line
         if len(last_line):
             out.write("{:s}\t{:d}\t{:s}\t{:s}\t{:s}\n".format(
                 last_line[0], last_line[1], last_line[2], last_line[3], last_line[4]))
