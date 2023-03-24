@@ -137,11 +137,11 @@ def main():
             if len(last_line):
                 if line[0] == last_line[0] and line[1] == last_line[1]:
                     last_line[3] = last_line[3] if line[3] == "" else (line[3] if last_line[3] == "" else last_line[3] + "," + line[3])
-                    last_line[4] = last_line[4] if line[4] == "" else (line[4] if last_line[4] == "" else last_line[4] + "," + line[3])
+                    last_line[4] = last_line[4] if line[4] == "" else (line[4] if last_line[4] == "" else last_line[4] + "," + line[4])
                 else:
                     out.write("{:s}\t{:d}\t{:s}\t{:s}\t{:s}\n".format(
                         last_line[0], last_line[1], last_line[2], last_line[3], last_line[4]))
-            last_line = line
+                    last_line = line
         if len(last_line):
             out.write("{:s}\t{:d}\t{:s}\t{:s}\t{:s}\n".format(
                 last_line[0], last_line[1], last_line[2], last_line[3], last_line[4]))
