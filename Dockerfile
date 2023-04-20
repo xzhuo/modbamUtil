@@ -11,6 +11,8 @@ ARG CACHEBUST=1
 RUN git clone https://github.com/xzhuo/modbamUtil.git
 # RUN mkdir /modbamutil/
 # ADD ./ /modbamutil
-RUN wget https://github.com/PacificBiosciences/pb-CpG-tools/releases/download/v2.1.1/pb-CpG-tools-v2.1.1-x86_64-unknown-linux-gnu.tar.gz
-RUN tar -xzf pb-CpG-tools-v2.1.1-x86_64-unknown-linux-gnu.tar.gz
-RUN echo 'alias aligned_bam_to_cpg_scores="/pb-CpG-tools-v2.1.1-x86_64-unknown-linux-gnu/bin/aligned_bam_to_cpg_scores"' >> ~/.bashrc
+
+RUN wget https://github.com/PacificBiosciences/pb-CpG-tools/releases/download/v2.2.0/pb-CpG-tools-v2.2.0-x86_64-unknown-linux-gnu.tar.gz
+RUN tar -xzf pb-CpG-tools-v2.2.0-x86_64-unknown-linux-gnu.tar.gz
+
+RUN echo 'alias aligned_bam_to_cpg_scores="/pb-CpG-tools-v2.2.0-x86_64-unknown-linux-gnu/bin/aligned_bam_to_cpg_scores"' >> ~/.bashrc
