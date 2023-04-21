@@ -14,5 +14,4 @@ RUN git clone https://github.com/xzhuo/modbamUtil.git
 
 RUN wget https://github.com/PacificBiosciences/pb-CpG-tools/releases/download/v2.2.0/pb-CpG-tools-v2.2.0-x86_64-unknown-linux-gnu.tar.gz
 RUN tar -xzf pb-CpG-tools-v2.2.0-x86_64-unknown-linux-gnu.tar.gz
-
-RUN echo 'alias aligned_bam_to_cpg_scores="/pb-CpG-tools-v2.2.0-x86_64-unknown-linux-gnu/bin/aligned_bam_to_cpg_scores"' >> ~/.bashrc
+ENV PATH="$PATH:/pb-CpG-tools-v2.2.0-x86_64-unknown-linux-gnu/bin"
