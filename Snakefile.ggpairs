@@ -43,8 +43,8 @@ rule ggpairs_wgbs:
         counts = "{sample}.{ref}.count.combined.bed",
         wgbs = "HG002.wgbs.{sample}.methylC.CpG.bed"
     output:
-        bed = "HG002.wgbs.{sample}.methylC.CpG.bed",
-        txt = "HG002.wgbs.{sample}.ggpairs.txt"
+        bed = "HG002.wgbs.{sample}.{ref}.methylC.CpG.bed",
+        txt = "HG002.wgbs.{sample}.{ref}.ggpairs.txt"
     container:
         "docker.io/xiaoyuz/biotools:latest"
     shell:
@@ -54,9 +54,9 @@ rule ggpairs_wgbs:
 
 rule ggpairs:
     input:
-        "HG002.wgbs.{sample}.ggpairs.txt"
+        "HG002.wgbs.{sample}.{ref}.ggpairs.txt"
     output:
-        "methylation.{sample}.ggpairs.pdf"
+        "methylation.{sample}.{ref}.ggpairs.pdf"
     container:
         "docker.io/xiaoyuz/ggplot:latest"
     script:
