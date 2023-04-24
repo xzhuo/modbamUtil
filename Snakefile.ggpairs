@@ -42,8 +42,8 @@ rule pbCpGtools:
     container:
         "docker.io/xiaoyuz/modbamutil:latest"
     shell:
-        "aligned_bam_to_cpg_scores --bam {input} --output-prefix {prefix_model} --model {params.model} --threads {threads}; \
-            aligned_bam_to_cpg_scores --bam {input} --output-prefix {prefix_count} --pileup-mode count --threads {threads}"
+        "aligned_bam_to_cpg_scores --bam {input} --output-prefix {params.prefix_model} --model {params.model} --threads {threads}; \
+            aligned_bam_to_cpg_scores --bam {input} --output-prefix {params.prefix_count} --pileup-mode count --threads {threads}"
 
 rule ggpairs_wgbs:
     input:
