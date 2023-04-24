@@ -1,6 +1,7 @@
 import os
 
 SUFFIX = '.bam'
+suffix_length = len(SUFFIX)
 SAMPLES = set(map(lambda x: x[:-suffix_length], filter(lambda y: y.endswith(SUFFIX), os.listdir("."))))
 # SAMPLES = ["bam"]
 print(SAMPLES)
