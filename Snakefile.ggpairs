@@ -23,7 +23,7 @@ rule pbmm2:
         sort_threads = 2,
         alignment_threads = 6
     container:
-        "quay.io/biocontainers/pbmm2:1.10.0--h9ee0642_0"
+        "https://quay.io/repository/biocontainers/pbmm2/manifest/sha256:f00bb97c3e6fcec879acb3c5c485a154eae8a0582b84b5a43a3b2dbd168a4b38"
     shell:
         "pbmm2 align {input.ref} {input.bam} {output.bam} --preset CCS --sort -j {params.alignment_threads} -J {params.sort_threads}"
 
@@ -40,7 +40,7 @@ rule pbCpGtools:
         prefix_model = "{sample}.model",
         prefix_count = "{sample}.count"
     container:
-        "docker.io/xiaoyuz/modbamutil:latest"
+        "docker://xiaoyuz/modbamutil:latest"
     shell:
         "aligned_bam_to_cpg_scores --bam {input} --output-prefix {params.prefix_model} --model {params.model} --threads {threads}; \
             aligned_bam_to_cpg_scores --bam {input} --output-prefix {params.prefix_count} --pileup-mode count --threads {threads}"
@@ -54,7 +54,7 @@ rule ggpairs_wgbs:
         bed = "HG002.wgbs.{sample}.methylC.CpG.bed",
         txt = "HG002.wgbs.{sample}.ggpairs.txt"
     container:
-        "docker.io/xiaoyuz/biotools:latest"
+        "docker://xiaoyuz/biotools:latest"
     shell:
         """bedtools intersect -a {input.wgbs} -b {input.counts} -loj|cut -f1-5,9,10 | \
             bedtools intersect -a stdin -b {input.model} -loj |cut -f1-7,11,12 > {output.bed}"; \
@@ -66,6 +66,6 @@ rule ggpairs:
     output:
         "methylation.{sample}.{ref}.ggpairs.pdf"
     container:
-        "docker.io/xiaoyuz/ggplot:latest"
+        "docker://xiaoyuz/ggplot:latest"
     script:
         "methylation.ggpairs.r"
