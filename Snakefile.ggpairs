@@ -47,7 +47,7 @@ rule ggpairs_wgbs:
     input:
         model = "{sample}.model.combined.bed",
         counts = "{sample}.count.combined.bed",
-        wgbs = "HG002.wgbs.{sample}.methylC.CpG.bed"
+        wgbs = "HG002.wgbs.methylC.CpG.bed"
     output:
         bed = "HG002.wgbs.{sample}.methylC.CpG.bed",
         txt = "HG002.wgbs.{sample}.ggpairs.txt"
