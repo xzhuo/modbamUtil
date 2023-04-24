@@ -37,11 +37,13 @@ rule pbCpGtools:
         8
     params:
         model = "/pb-CpG-tools-v2.2.0-x86_64-unknown-linux-gnu/models/pileup_calling_model.v1.tflite"
+        prefix_model = "{sample}.model",
+        prefix_count = "{sample}.count"
     container:
         "docker.io/xiaoyuz/modbamutil:latest"
     shell:
-        "aligned_bam_to_cpg_scores --bam {input} --output-prefix {wildcards.sample}.{ref}.model --model {params.model} --threads {threads}; \
-            aligned_bam_to_cpg_scores --bam {input} --output-prefix {wildcards.sample}.{ref}.count --pileup-mode count --threads {threads}"
+        "aligned_bam_to_cpg_scores --bam {input} --output-prefix {prefix_model} --model {params.model} --threads {threads}; \
+            aligned_bam_to_cpg_scores --bam {input} --output-prefix {prefix_count} --pileup-mode count --threads {threads}"
 
 rule ggpairs_wgbs:
     input:
