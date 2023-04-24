@@ -1,4 +1,9 @@
-SAMPLES = ["bam"]
+import os
+
+SUFFIX = '.bam'
+SAMPLES = set(map(lambda x: x[:-suffix_length], filter(lambda y: y.endswith(SUFFIX), os.listdir("."))))
+# SAMPLES = ["bam"]
+print(SAMPLES)
 
 rule all:
     input:
