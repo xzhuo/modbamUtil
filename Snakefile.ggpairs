@@ -8,15 +8,15 @@ print(SAMPLES)
 
 rule all:
     input:
-        expand("methylation.{sample}.{ref}.ggpairs.pdf", sample=SAMPLES, ref="hg38"),
+        expand("methylation.{sample}.ggpairs.pdf", sample=SAMPLES),
 
 rule pbmm2:
     input:
         bam = "{sample}.bam",
         ref = "/storage1/fs1/hprc/Active/xzhuo/ref/hg38.fa"
     output:
-        bam = "{sample}.{ref}.bam",
-        bai = "{sample}.{ref}.bam.bai"
+        bam = "{sample}.hg38.bam",
+        bai = "{sample}.hg38.bam.bai"
     threads:
         8
     params:
@@ -29,10 +29,10 @@ rule pbmm2:
 
 rule pbCpGtools:
     input:
-        bam = "{sample}.{ref}.bam"
+        bam = "{sample}.hg38.bam"
     output:
-        model = "{sample}.{ref}.model.combined.bed",
-        counts = "{sample}.{ref}.count.combined.bed"
+        model = "{sample}.model.combined.bed",
+        counts = "{sample}.count.combined.bed"
     threads:
         8
     params:
@@ -45,12 +45,12 @@ rule pbCpGtools:
 
 rule ggpairs_wgbs:
     input:
-        model = "{sample}.{ref}.model.combined.bed",
-        counts = "{sample}.{ref}.count.combined.bed",
+        model = "{sample}.model.combined.bed",
+        counts = "{sample}.count.combined.bed",
         wgbs = "HG002.wgbs.{sample}.methylC.CpG.bed"
     output:
-        bed = "HG002.wgbs.{sample}.{ref}.methylC.CpG.bed",
-        txt = "HG002.wgbs.{sample}.{ref}.ggpairs.txt"
+        bed = "HG002.wgbs.{sample}.methylC.CpG.bed",
+        txt = "HG002.wgbs.{sample}.ggpairs.txt"
     container:
         "docker.io/xiaoyuz/biotools:latest"
     shell:
