@@ -64,7 +64,6 @@ class Read:
         self.name = read
         self.CGins = CGins
         self.readtype = readtype
-        self.locus = self.chr + ":" + self.start + "-" + self.end
         self.cpg = []
 
     def add_cpg(self, cpg):
@@ -89,7 +88,7 @@ def main():
     parser.add_argument('-g', '--groupby_file', type=str, required=True, help='input file of all reads with read type annotation')
     parser.add_argument('-o', '--output', type=str, required=True, help='output file')
     parser.add_argument('-l', '--len', type=int, default=500, help='length of flanking regions to average methylation')
-    parser.add_argument('-a', '--aggregation', choices=['mean', 'count'], default= 'mean', required=True, help='how to aggregate the methylation of flanking regions. can be either mean or count')
+    parser.add_argument('-a', '--aggregation', choices=['mean', 'count'], default= 'mean', help='how to aggregate the methylation of flanking regions. can be either mean or count')
     parser.add_argument('-t', '--threads', type=int, default=1, help='multi-threading')
     args = parser.parse_args()
     position_file = os.path.abspath(args.position_file)
