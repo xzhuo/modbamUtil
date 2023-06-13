@@ -21,25 +21,29 @@ class Locus:
         insertion_b_cpgs = []
         insertion_a_cpgs = []
         i_cpgs = []
-        number_of_reads = self.number_of_reads()
+        total_flanking_reads = 0
+        total_insertion_reads = 0
         for read in self.reads:
             read.methylation_list(length)
             if read.readtype == "a,b":
                 empty_b_cpgs.extend(read.b_cpgs)
                 empty_a_cpgs.extend(read.a_cpgs)
+                total_flanking_reads += 1
             elif read.readtype == "a,b,i":
                 i_cpgs.extend(read.i_cpgs)
                 insertion_b_cpgs.extend(read.b_cpgs)
                 insertion_a_cpgs.extend(read.a_cpgs)
+                total_flanking_reads += 1
+                total_insertion_reads += 1
 
         self.empty_b_methylation = sum(empty_b_cpgs)/len(empty_b_cpgs)
         self.empty_a_methylation = sum(empty_a_cpgs)/len(empty_a_cpgs)
         self.insertion_b_methylation = sum(insertion_b_cpgs)/len(insertion_b_cpgs)
         self.insertion_a_methylation = sum(insertion_a_cpgs)/len(insertion_a_cpgs)
         self.i_methylation = sum(i_cpgs)/len(i_cpgs)
-        self.b_cpg_count = 
-        self.a_cpg_count = 
-        self.i_cpg_count = 
+        self.b_cpg_count = (len(empty_b_cpgs) + len(insertion_b_cpgs)) / total_flanking_reads
+        self.a_cpg_count = (len(empty_a_cpgs) + len(insertion_a_cpgs)) / total_flanking_reads
+        self.i_cpg_count = len(i_cpgs) / total_insertion_reads
 
     def get_read(self, read_name):
         return self.reads[read_name]
@@ -124,8 +128,9 @@ def main():
         for locus in locus_dict:
             locus_dict[locus].aggregate_methylation(args.len)
             # chr, chr.start, chr,end, chr.pos, read, read.pos, methylation, strand
-            out.write("{:s}\t{:d}\t{:d}\t{:d}\t{:s}\t{:d}\t{:.2f}\t{:s}\n".format(
-                        i[0],i[1],i[2],i[3],i[4],i[5],i[6],i[7]))
+            locus_object = locus_dict[locus]
+            out.write("{:s}\t{:d}\t{:d}\t{:.2f}\t{:.2f}\t{:.2f}\t{:.2f}\t{:.2f}\t{:.2f}\t{:.2f}\t{:.2f}\t{:.2f}\n".format(
+                        locus_object.chr, locus_object.start, locus_object.end, locus_object.b_cpg_count, locus_object.a_cpg_count,locus_object.i_cpg_count, locus_object.empty_b_methylation, locus_object.empty_a_methylation, locus_object.empty_i_methylation, locus_object.insertion_b_methylation, locus_object.insertion_a_methylation, locus_object.i_methylation))
     end_time = time.time()
     print("--- %s hours ---" % ((end_time - start_time)/3600))
 
