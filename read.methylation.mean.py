@@ -7,8 +7,8 @@ from mpire import WorkerPool
 class Locus:
     def __init__(self, chr, start, end):
         self.chr = chr
-        self.start = start
-        self.end = end
+        self.start = int(start)
+        self.end = int(end)
         self.name = chr + ":" + start + "-" + end
         self.reads = {}
 
@@ -23,7 +23,8 @@ class Locus:
         i_cpgs = []
         total_flanking_reads = 0
         total_insertion_reads = 0
-        for read in self.reads:
+        for i in self.reads:
+            read = self.reads[i]
             read.methylation_list(length)
             if read.readtype == "a,b":
                 empty_b_cpgs.extend(read.b_cpgs)
@@ -69,17 +70,17 @@ class Read:
     def add_cpg(self, cpg):
         self.cpg.append(cpg)
 
-    def methylation_list(self,length):
-        self.b_cpgs = [i["methylation"] for i in self.cpg if i["rel_pos"]<0 and i["rel_pos"]>length * -1 and i["pos"] > 0]
-        self.a_cpgs = [i["methylation"] for i in self.cpg if i["rel_pos"]>0 and i["rel_pos"]<length and i["pos"] > 0]
-        self.i_cpgs = [i["methylation"] for i in self.cpg if i["type"] == "i"]
+    def methylation_list(self, length):
+        self.b_cpgs = [i.methylation for i in self.cpg if i.rel_pos < 0 and i.rel_pos > length * -1 and i.pos > 0]
+        self.a_cpgs = [i.methylation for i in self.cpg if i.rel_pos > 0 and i.rel_pos < length and i.pos > 0]
+        self.i_cpgs = [i.methylation for i in self.cpg if i.type == "i"]
         # mean_methylation = sum(methylation_list)/len(methylation_list) if len(methylation_list)>0 else -1
 
 class CpG:
     def __init__(self, pos, rel_pos, methylation, type):
-        self.pos = pos
-        self.rel_pos = rel_pos
-        self.methylation = methylation
+        self.pos = int(pos)
+        self.rel_pos = int(rel_pos)
+        self.methylation = float(methylation)
         self.type = type
 
 def main():
@@ -138,8 +139,8 @@ def main():
             # chr, chr.start, chr,end, chr.pos, read, read.pos, methylation, strand
             locus_object = locus_dict[locus]
             if hasattr(locus_object, "i_methylation"):
-                out.write("{:s}\t{:d}\t{:d}\t{:.2f}\t{:.2f}\t{:.2f}\t{:.2f}\t{:.2f}\t{:.2f}\n".format(
-                            locus_object.chr, locus_object.start, locus_object.end, locus_object.empty_b_methylation, locus_object.empty_a_methylation, locus_object.empty_i_methylation, locus_object.insertion_b_methylation, locus_object.insertion_a_methylation, locus_object.i_methylation))
+                out.write("{:s}\t{:d}\t{:d}\t{:.2f}\t{:.2f}\t{:.2f}\t{:.2f}\t{:.2f}\n".format(
+                            locus_object.chr, locus_object.start, locus_object.end, locus_object.empty_b_methylation, locus_object.empty_a_methylation, locus_object.insertion_b_methylation, locus_object.insertion_a_methylation, locus_object.i_methylation))
     end_time = time.time()
     print("--- %s hours ---" % ((end_time - start_time)/3600))
 
