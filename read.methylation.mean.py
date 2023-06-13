@@ -15,7 +15,7 @@ class Locus:
     def add_read(self, read):
         self.reads[read.name] = read
 
-    def aggregate_methylation(self, length):
+    def aggregate_methylation(self, length, aggregate_type = "mean"):
         empty_b_cpgs = []
         empty_a_cpgs = []
         insertion_b_cpgs = []
@@ -36,14 +36,22 @@ class Locus:
                 total_flanking_reads += 1
                 total_insertion_reads += 1
 
-        self.empty_b_methylation = sum(empty_b_cpgs)/len(empty_b_cpgs)
-        self.empty_a_methylation = sum(empty_a_cpgs)/len(empty_a_cpgs)
-        self.insertion_b_methylation = sum(insertion_b_cpgs)/len(insertion_b_cpgs)
-        self.insertion_a_methylation = sum(insertion_a_cpgs)/len(insertion_a_cpgs)
-        self.i_methylation = sum(i_cpgs)/len(i_cpgs)
-        self.b_cpg_count = (len(empty_b_cpgs) + len(insertion_b_cpgs)) / total_flanking_reads
-        self.a_cpg_count = (len(empty_a_cpgs) + len(insertion_a_cpgs)) / total_flanking_reads
-        self.i_cpg_count = len(i_cpgs) / total_insertion_reads
+        if aggregate_type == "mean":
+            if len(empty_b_cpgs) > 0 and len(empty_a_cpgs) > 0 and len(insertion_b_cpgs) > 0 and len(insertion_a_cpgs) > 0 and len(i_cpgs) > 0:
+                self.empty_b_methylation = sum(empty_b_cpgs)/len(empty_b_cpgs)
+                self.empty_a_methylation = sum(empty_a_cpgs)/len(empty_a_cpgs)
+                self.insertion_b_methylation = sum(insertion_b_cpgs)/len(insertion_b_cpgs)
+                self.insertion_a_methylation = sum(insertion_a_cpgs)/len(insertion_a_cpgs)
+                self.i_methylation = sum(i_cpgs)/len(i_cpgs)
+        elif aggregate_type == "count":
+            if total_flanking_reads > 0 and total_insertion_reads > 0:
+                self.empty_b_methylation = len([i for i in empty_b_cpgs if i > 0.5])/total_flanking_reads
+                self.empty_a_methylation = len([i for i in empty_a_cpgs if i > 0.5])/total_flanking_reads
+                self.insertion_b_methylation = len([i for i in insertion_b_cpgs if i > 0.5])/total_insertion_reads
+                self.insertion_a_methylation = len([i for i in insertion_a_cpgs if i > 0.5])/total_insertion_reads
+                self.i_methylation = sum(i_cpgs)/len(i_cpgs)  # always return mean methylation for insertion region.
+        else:
+            raise ValueError("aggregate_type can only be mean or count")
 
     def get_read(self, read_name):
         return self.reads[read_name]
@@ -81,6 +89,7 @@ def main():
     parser.add_argument('-g', '--groupby_file', type=str, required=True, help='input file of all reads with read type annotation')
     parser.add_argument('-o', '--output', type=str, required=True, help='output file')
     parser.add_argument('-l', '--len', type=int, default=500, help='length of flanking regions to average methylation')
+    parser.add_argument('-a', '--aggregation', choices=['mean', 'count'], default= 'mean', required=True, help='how to aggregate the methylation of flanking regions. can be either mean or count')
     parser.add_argument('-t', '--threads', type=int, default=1, help='multi-threading')
     args = parser.parse_args()
     position_file = os.path.abspath(args.position_file)
@@ -123,14 +132,15 @@ def main():
             if locus in locus_dict and read in locus_dict[locus].reads:
                 read = locus_dict[locus].get_read(read)
                 read.add_cpg(cpg_item)
-        
+
     with open(args.output, "w") as out:
         for locus in locus_dict:
-            locus_dict[locus].aggregate_methylation(args.len)
+            locus_dict[locus].aggregate_methylation(args.len, args.aggregation)
             # chr, chr.start, chr,end, chr.pos, read, read.pos, methylation, strand
             locus_object = locus_dict[locus]
-            out.write("{:s}\t{:d}\t{:d}\t{:.2f}\t{:.2f}\t{:.2f}\t{:.2f}\t{:.2f}\t{:.2f}\t{:.2f}\t{:.2f}\t{:.2f}\n".format(
-                        locus_object.chr, locus_object.start, locus_object.end, locus_object.b_cpg_count, locus_object.a_cpg_count,locus_object.i_cpg_count, locus_object.empty_b_methylation, locus_object.empty_a_methylation, locus_object.empty_i_methylation, locus_object.insertion_b_methylation, locus_object.insertion_a_methylation, locus_object.i_methylation))
+            if hasattr(locus_object, "i_methylation"):
+                out.write("{:s}\t{:d}\t{:d}\t{:.2f}\t{:.2f}\t{:.2f}\t{:.2f}\t{:.2f}\t{:.2f}\n".format(
+                            locus_object.chr, locus_object.start, locus_object.end, locus_object.empty_b_methylation, locus_object.empty_a_methylation, locus_object.empty_i_methylation, locus_object.insertion_b_methylation, locus_object.insertion_a_methylation, locus_object.i_methylation))
     end_time = time.time()
     print("--- %s hours ---" % ((end_time - start_time)/3600))
 
