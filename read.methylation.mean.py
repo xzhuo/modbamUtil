@@ -134,29 +134,44 @@ def main():
                 locus_dict[locus_name].add_read(read_item)
     groupby_time = time.time()
     print("--- It took %s hours to read the groupby file ---" % ((groupby_time - start_time)/3600))
+
+    outputs = []
+
     """
     position file:
     chr1	10861	10862	10082	m64136_200710_174522/11207845/ccs	-796	0.96	+	b
     chr1	10861	10862	10207	m64136_200710_174522/11207845/ccs	-670	0.98	+	b
     chr1	10861	10862	10468	m64136_200710_174522/11207845/ccs	-418	1.00	+	b
     """
-    with open(position_file, 'r') as f:  # read the region file
+    with open(position_file, 'r') as f:  # read the sorted region file. The file is too big for the memory, so we have to sort it first and then process it locus by locus.
+        last_locus = ""
         for line in f.readlines():
             chr, start, end, pos, read, rel_pos, methylation, strand, type = line.split()
             cpg_item = CpG(pos, rel_pos, methylation, type)
             locus = chr + ":" + start + "-" + end
-            if locus in locus_dict and read in locus_dict[locus].reads:
-                read = locus_dict[locus].get_read(read)
-                read.add_cpg(cpg_item)
-    region_time = time.time()
-    print("--- It took %s hours to read the region file ---" % ((region_time - groupby_time)/3600))
-    outputs = []
-    if args.threads == 1:
-        for i in locus_dict.keys():
-            outputs.append(aggregate_func(locus_dict[i], args.len, args.aggregation))
-    else:
-        with WorkerPool(n_jobs=args.threads) as pool:
-            outputs = pool.map(aggregate_func, zip(locus_dict.values(), repeat(args.len), repeat(args.aggregation)), iterable_len=len(locus_dict.values()), progress_bar=True)
+            if locus == last_locus:
+                if locus in locus_dict and read in locus_dict[locus].reads:
+                    read = locus_dict[locus].get_read(read)
+                    read.add_cpg(cpg_item)
+            else:
+                if last_locus != "":
+                    locus_dict[last_locus].aggregate_methylation(args.len, args.aggregation)
+                    outputs.append(aggregate_func(locus_dict[last_locus], args.len, args.aggregation))
+                    del locus_dict[last_locus]
+                if locus in locus_dict and read in locus_dict[locus].reads:
+                    read = locus_dict[locus].get_read(read)
+                    read.add_cpg(cpg_item)
+                last_locus = locus
+        locus_dict[last_locus].aggregate_methylation(args.len, args.aggregation)
+        outputs.append(aggregate_func(locus_dict[last_locus], args.len, args.aggregation))
+        del locus_dict[last_locus]
+
+    # if args.threads == 1:
+    #     for i in locus_dict.keys():
+    #         outputs.append(aggregate_func(locus_dict[i], args.len, args.aggregation))
+    # else:
+    #     with WorkerPool(n_jobs=args.threads) as pool:
+    #         outputs = pool.map(aggregate_func, zip(locus_dict.values(), repeat(args.len), repeat(args.aggregation)), iterable_len=len(locus_dict.values()), progress_bar=True)
 
     with open(args.output, "w") as out:
         for i in outputs:
