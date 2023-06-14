@@ -16,6 +16,9 @@ class Locus:
     def add_read(self, read):
         self.reads[read.name] = read
 
+    def remove_reads(self):
+        self.reads = {}
+
     def aggregate_methylation(self, length, aggregate_type = "mean"):
         empty_b_cpgs = []
         empty_a_cpgs = []
@@ -54,6 +57,7 @@ class Locus:
                 self.i_methylation = sum(i_cpgs)/len(i_cpgs)  # always return mean methylation for insertion region.
         else:
             raise ValueError("aggregate_type can only be mean or count")
+        self.remove_reads()
 
     def get_read(self, read_name):
         return self.reads[read_name]
@@ -70,6 +74,9 @@ class Read:
 
     def add_cpg(self, cpg):
         self.cpg.append(cpg)
+
+    def remove_cpg(self):
+        self.cpg = []
 
     def methylation_list(self, length):
         self.b_cpgs = [i.methylation for i in self.cpg if i.rel_pos < 0 and i.rel_pos > length * -1 and i.pos > 0]
