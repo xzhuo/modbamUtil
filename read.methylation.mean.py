@@ -91,6 +91,16 @@ class CpG:
         self.methylation = float(methylation)
         self.type = type
 
+def multi_process_aggregate_func(loci_chr, threads, length, aggregate_type):
+    outputs = []
+    if threads == 1:
+        for i in loci_chr.keys():
+            outputs.append(aggregate_func(loci_chr[i], length, aggregate_type))
+    else:
+        with WorkerPool(n_jobs=threads) as pool:
+            outputs = pool.map(aggregate_func, zip(loci_chr.values(), repeat(length), repeat(aggregate_type)), iterable_len=len(loci_chr.values()), progress_bar=True)
+    return outputs
+
 def aggregate_func(locus, length, aggregate_type):
     locus.aggregate_methylation(length, aggregate_type)
     output = []
@@ -127,11 +137,15 @@ def main():
             chr, start, end, read, CGins, readtype = line.split()
             locus_name = chr + ":" + start + "-" + end
             read_item = Read(read, CGins, readtype)
-            if locus_name not in locus_dict:
-                locus_dict[locus_name] = Locus(chr, start, end)
-                locus_dict[locus_name].add_read(read_item)
+            if chr not in locus_dict:
+                locus_dict[chr] = {}
+                locus_dict[chr][locus_name] = Locus(chr, start, end)
+                locus_dict[chr][locus_name].add_read(read_item)
+            elif locus_name not in locus_dict[chr]:
+                locus_dict[chr][locus_name] = Locus(chr, start, end)
+                locus_dict[chr][locus_name].add_read(read_item)
             else:
-                locus_dict[locus_name].add_read(read_item)
+                locus_dict[chr][locus_name].add_read(read_item)
     groupby_time = time.time()
     print("--- It took %s hours to read the groupby file ---" % ((groupby_time - start_time)/3600))
 
@@ -144,27 +158,25 @@ def main():
     chr1	10861	10862	10468	m64136_200710_174522/11207845/ccs	-418	1.00	+	b
     """
     with open(position_file, 'r') as f:  # read the sorted region file. The file is too big for the memory, so we have to sort it first and then process it locus by locus.
-        last_locus = ""
+        last_chr = ""
         for line in f.readlines():
             chr, start, end, pos, read, rel_pos, methylation, strand, type = line.split()
             cpg_item = CpG(pos, rel_pos, methylation, type)
             locus = chr + ":" + start + "-" + end
-            if locus == last_locus:
-                if locus in locus_dict and read in locus_dict[locus].reads:
-                    read = locus_dict[locus].get_read(read)
+            if chr == last_chr:
+                if locus in locus_dict[chr] and read in locus_dict[chr][locus].reads:
+                    read = locus_dict[chr][locus].get_read(read)
                     read.add_cpg(cpg_item)
             else:
-                if last_locus != "":
-                    locus_dict[last_locus].aggregate_methylation(args.len, args.aggregation)
-                    outputs.append(aggregate_func(locus_dict[last_locus], args.len, args.aggregation))
-                    del locus_dict[last_locus]
-                if locus in locus_dict and read in locus_dict[locus].reads:
-                    read = locus_dict[locus].get_read(read)
+                if last_chr != "":
+                    outputs.extend(multi_process_aggregate_func(locus_dict[last_chr], args.threads, args.len, args.aggregation))
+                    del locus_dict[last_chr]
+                if locus in locus_dict[chr] and read in locus_dict[chr][locus].reads:
+                    read = locus_dict[chr][locus].get_read(read)
                     read.add_cpg(cpg_item)
-                last_locus = locus
-        locus_dict[last_locus].aggregate_methylation(args.len, args.aggregation)
-        outputs.append(aggregate_func(locus_dict[last_locus], args.len, args.aggregation))
-        del locus_dict[last_locus]
+                last_chr = chr
+        outputs.extend(multi_process_aggregate_func(locus_dict[last_chr], args.threads, args.len, args.aggregation))
+        del locus_dict[last_chr]
 
     # if args.threads == 1:
     #     for i in locus_dict.keys():
