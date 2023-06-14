@@ -3,6 +3,7 @@ import sys
 import argparse
 import time
 from mpire import WorkerPool
+from itertools import repeat
 
 class Locus:
     def __init__(self, chr, start, end):
@@ -83,6 +84,13 @@ class CpG:
         self.methylation = float(methylation)
         self.type = type
 
+def aggregate_func(locus, length, aggregate_type):
+    locus.aggregate_methylation(length, aggregate_type)
+    output = []
+    if hasattr(locus, "i_methylation"):
+        output = [locus.chr, locus.start, locus.end, locus.empty_b_methylation, locus.empty_a_methylation, locus.insertion_b_methylation, locus.insertion_a_methylation, locus.i_methylation]
+    return output
+
 def main():
     parser = argparse.ArgumentParser(description='Calculate mean methylation of both flanking and insertion regions of all reads')
     parser.add_argument('-p', '--position_file', type=str, required=True, help='input file with each CpG in all reads')
@@ -117,7 +125,8 @@ def main():
                 locus_dict[locus_name].add_read(read_item)
             else:
                 locus_dict[locus_name].add_read(read_item)
-
+    groupby_time = time.time()
+    print("--- It took %s hours to read the groupby file ---" % ((groupby_time - start_time)/3600))
     """
     position file:
     chr1	10861	10862	10082	m64136_200710_174522/11207845/ccs	-796	0.96	+	b
@@ -132,17 +141,24 @@ def main():
             if locus in locus_dict and read in locus_dict[locus].reads:
                 read = locus_dict[locus].get_read(read)
                 read.add_cpg(cpg_item)
+    region_time = time.time()
+    print("--- It took %s hours to read the region file ---" % ((region_time - groupby_time)/3600))
+    outputs = []
+    if args.threads == 1:
+        for i in locus_dict.keys():
+            outputs.append(aggregate_func(locus_dict[i], args.len, args.aggregation))
+    else:
+        with WorkerPool(n_jobs=args.threads) as pool:
+            outputs = pool.map(aggregate_func, zip(locus_dict.values(), repeat(args.len), repeat(args.aggregation)), iterable_len=len(locus_dict.values()), progress_bar=True)
 
     with open(args.output, "w") as out:
-        for locus in locus_dict:
-            locus_dict[locus].aggregate_methylation(args.len, args.aggregation)
-            # chr, chr.start, chr,end, chr.pos, read, read.pos, methylation, strand
-            locus_object = locus_dict[locus]
-            if hasattr(locus_object, "i_methylation"):
+        for i in outputs:
+            if len(i) > 0:
                 out.write("{:s}\t{:d}\t{:d}\t{:.2f}\t{:.2f}\t{:.2f}\t{:.2f}\t{:.2f}\n".format(
-                            locus_object.chr, locus_object.start, locus_object.end, locus_object.empty_b_methylation, locus_object.empty_a_methylation, locus_object.insertion_b_methylation, locus_object.insertion_a_methylation, locus_object.i_methylation))
+                    i[0], i[1], i[2], i[3], i[4], i[5], i[6], i[7]))
+
     end_time = time.time()
-    print("--- %s hours ---" % ((end_time - start_time)/3600))
+    print("--- In total it took %s hours ---" % ((end_time - start_time)/3600))
 
 if __name__ == '__main__':
     main()
