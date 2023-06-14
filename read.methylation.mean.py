@@ -169,12 +169,14 @@ def main():
                     read.add_cpg(cpg_item)
             else:
                 if last_chr != "":
+                    print("--- Processing %s ---" % (last_chr))
                     outputs.extend(multi_process_aggregate_func(locus_dict[last_chr], args.threads, args.len, args.aggregation))
                     del locus_dict[last_chr]
                 if locus in locus_dict[chr] and read in locus_dict[chr][locus].reads:
                     read = locus_dict[chr][locus].get_read(read)
                     read.add_cpg(cpg_item)
                 last_chr = chr
+        print("--- Processing %s ---" % (last_chr))
         outputs.extend(multi_process_aggregate_func(locus_dict[last_chr], args.threads, args.len, args.aggregation))
         del locus_dict[last_chr]
 
