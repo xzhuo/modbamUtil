@@ -19,7 +19,7 @@ class Locus:
     def remove_reads(self):
         self.reads = {}
 
-    def aggregate_methylation(self, length, aggregate_type = "mean"):
+    def aggregate_methylation(self, length):
         empty_b_cpgs = []
         empty_a_cpgs = []
         insertion_b_cpgs = []
@@ -41,22 +41,18 @@ class Locus:
                 total_flanking_reads += 1
                 total_insertion_reads += 1
 
-        if aggregate_type == "mean":
-            if len(empty_b_cpgs) > 0 and len(empty_a_cpgs) > 0 and len(insertion_b_cpgs) > 0 and len(insertion_a_cpgs) > 0 and len(i_cpgs) > 0:
-                self.empty_b_methylation = sum(empty_b_cpgs)/len(empty_b_cpgs)
-                self.empty_a_methylation = sum(empty_a_cpgs)/len(empty_a_cpgs)
-                self.insertion_b_methylation = sum(insertion_b_cpgs)/len(insertion_b_cpgs)
-                self.insertion_a_methylation = sum(insertion_a_cpgs)/len(insertion_a_cpgs)
-                self.i_methylation = sum(i_cpgs)/len(i_cpgs)
-        elif aggregate_type == "count":
-            if total_flanking_reads > 0 and total_insertion_reads > 0:
-                self.empty_b_methylation = len([i for i in empty_b_cpgs if i > 0.5])/total_flanking_reads
-                self.empty_a_methylation = len([i for i in empty_a_cpgs if i > 0.5])/total_flanking_reads
-                self.insertion_b_methylation = len([i for i in insertion_b_cpgs if i > 0.5])/total_insertion_reads
-                self.insertion_a_methylation = len([i for i in insertion_a_cpgs if i > 0.5])/total_insertion_reads
-                self.i_methylation = sum(i_cpgs)/len(i_cpgs)  # always return mean methylation for insertion region.
-        else:
-            raise ValueError("aggregate_type can only be mean or count")
+        self.empty_b_hyper = len([i for i in empty_b_cpgs if i > 0.5])
+        self.empty_b_all = len(empty_b_cpgs)
+        self.empty_a_hyper = len([i for i in empty_a_cpgs if i > 0.5])
+        self.empty_a_all = len(empty_a_cpgs)
+        self.with_b_hyper = len([i for i in insertion_b_cpgs if i > 0.5])
+        self.with_b_all = len(insertion_b_cpgs)
+        self.with_a_hyper = len([i for i in insertion_a_cpgs if i > 0.5])
+        self.with_a_all = len(insertion_a_cpgs)
+        self.insertion_hyper = len([i for i in i_cpgs if i > 0.5])
+        self.insertion_all = len(i_cpgs)
+        self.total_flanking_reads = total_flanking_reads
+        self.total_insertion_reads = total_insertion_reads
         self.remove_reads()
 
     def get_read(self, read_name):
@@ -91,21 +87,19 @@ class CpG:
         self.methylation = float(methylation)
         self.type = type
 
-def multi_process_aggregate_func(loci_chr, threads, length, aggregate_type):
+def multi_process_aggregate_func(loci_chr, threads, length):
     outputs = []
     if threads == 1:
         for i in loci_chr.keys():
-            outputs.append(aggregate_func(loci_chr[i], length, aggregate_type))
+            outputs.append(aggregate_func(loci_chr[i], length))
     else:
         with WorkerPool(n_jobs=threads) as pool:
-            outputs = pool.map(aggregate_func, zip(loci_chr.values(), repeat(length), repeat(aggregate_type)), iterable_len=len(loci_chr.values()), progress_bar=True)
+            outputs = pool.map(aggregate_func, zip(loci_chr.values(), repeat(length)), iterable_len=len(loci_chr.values()), progress_bar=True)
     return outputs
 
-def aggregate_func(locus, length, aggregate_type):
-    locus.aggregate_methylation(length, aggregate_type)
-    output = []
-    if hasattr(locus, "i_methylation"):
-        output = [locus.chr, locus.start, locus.end, locus.empty_b_methylation, locus.empty_a_methylation, locus.insertion_b_methylation, locus.insertion_a_methylation, locus.i_methylation]
+def aggregate_func(locus, length):
+    locus.aggregate_methylation(length)
+    output = [locus.chr, locus.start, locus.end, locus.empty_b_hyper, locus.empty_b_all, locus.empty_a_hyper, locus.empty_a_all, locus.with_b_hyper, locus.with_b_all, locus.with_a_hyper, locus.with_a_all, locus.insertion_hyper, locus.insertion_all, locus.total_flanking_reads, locus.total_insertion_reads]
     return output
 
 def main():
@@ -114,7 +108,6 @@ def main():
     parser.add_argument('-g', '--groupby_file', type=str, required=True, help='input file of all reads with read type annotation')
     parser.add_argument('-o', '--output', type=str, required=True, help='output file')
     parser.add_argument('-l', '--len', type=int, default=500, help='length of flanking regions to average methylation')
-    parser.add_argument('-a', '--aggregation', choices=['mean', 'count'], default= 'mean', help='how to aggregate the methylation of flanking regions. can be either mean or count')
     parser.add_argument('-t', '--threads', type=int, default=1, help='multi-threading')
     args = parser.parse_args()
     position_file = os.path.abspath(args.position_file)
@@ -170,14 +163,14 @@ def main():
             else:
                 if last_chr != "":
                     print("--- Processing %s ---" % (last_chr))
-                    outputs.extend(multi_process_aggregate_func(locus_dict[last_chr], args.threads, args.len, args.aggregation))
+                    outputs.extend(multi_process_aggregate_func(locus_dict[last_chr], args.threads, args.len))
                     del locus_dict[last_chr]
                 if locus in locus_dict[chr] and read in locus_dict[chr][locus].reads:
                     read = locus_dict[chr][locus].get_read(read)
                     read.add_cpg(cpg_item)
                 last_chr = chr
         print("--- Processing %s ---" % (last_chr))
-        outputs.extend(multi_process_aggregate_func(locus_dict[last_chr], args.threads, args.len, args.aggregation))
+        outputs.extend(multi_process_aggregate_func(locus_dict[last_chr], args.threads, args.len))
         del locus_dict[last_chr]
 
     # if args.threads == 1:
@@ -188,10 +181,11 @@ def main():
     #         outputs = pool.map(aggregate_func, zip(locus_dict.values(), repeat(args.len), repeat(args.aggregation)), iterable_len=len(locus_dict.values()), progress_bar=True)
 
     with open(args.output, "w") as out:
+        out.write("chr\tstart\tend\tempty_before_hyper\tempty_before_all\tempty_after_hyper\tempty_after_all\twith_before_hyper\ttwith_before_all\twith_after_hyper\ttwith_after_all\tinsertion_hyper\tinsertion_all\ttotal_flanking_reads\ttotal_insertion_reads\n")
         for i in outputs:
             if len(i) > 0:
-                out.write("{:s}\t{:d}\t{:d}\t{:.2f}\t{:.2f}\t{:.2f}\t{:.2f}\t{:.2f}\n".format(
-                    i[0], i[1], i[2], i[3], i[4], i[5], i[6], i[7]))
+                out.write("{:s}\t{:d}\t{:d}\t{:d}\t{:d}\t{:d}\t{:d}\t{:d}\t{:d}\t{:d}\t{:d}\t{:d}\t{:d}\t{:d}\t{:d}\n".format(
+                    i[0], i[1], i[2], i[3], i[4], i[5], i[6], i[7], i[8], i[9], i[10], i[11], i[12], i[13], i[14]))
 
     end_time = time.time()
     print("--- In total it took %s hours ---" % ((end_time - start_time)/3600))
