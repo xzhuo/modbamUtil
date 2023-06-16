@@ -181,7 +181,7 @@ def main():
     #         outputs = pool.map(aggregate_func, zip(locus_dict.values(), repeat(args.len), repeat(args.aggregation)), iterable_len=len(locus_dict.values()), progress_bar=True)
 
     with open(args.output, "w") as out:
-        out.write("chr\tstart\tend\tempty_before_hyper\tempty_before_all\tempty_after_hyper\tempty_after_all\twith_before_hyper\ttwith_before_all\twith_after_hyper\ttwith_after_all\tinsertion_hyper\tinsertion_all\ttotal_flanking_reads\ttotal_insertion_reads\n")
+        out.write("chr\tstart\tend\tempty_before_hyper\tempty_before_all\tempty_after_hyper\tempty_after_all\twith_before_hyper\twith_before_all\twith_after_hyper\twith_after_all\tinsertion_hyper\tinsertion_all\ttotal_flanking_reads\ttotal_insertion_reads\n")
         for i in outputs:
             if len(i) > 0:
                 out.write("{:s}\t{:d}\t{:d}\t{:d}\t{:d}\t{:d}\t{:d}\t{:d}\t{:d}\t{:d}\t{:d}\t{:d}\t{:d}\t{:d}\t{:d}\n".format(
