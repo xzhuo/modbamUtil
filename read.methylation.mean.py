@@ -108,6 +108,7 @@ def main():
     parser.add_argument('-g', '--groupby_file', type=str, required=True, help='input file of all reads with read type annotation')
     parser.add_argument('-o', '--output', type=str, required=True, help='output file')
     parser.add_argument('-l', '--len', type=int, default=500, help='length of flanking regions to average methylation')
+    parser.add_argument('-c', '--locus', action=argparse.BooleanOptionalAction, default=False, help='if true, process locus by locus instead of chr by chr')
     parser.add_argument('-t', '--threads', type=int, default=1, help='multi-threading')
     args = parser.parse_args()
     position_file = os.path.abspath(args.position_file)
@@ -117,7 +118,7 @@ def main():
     if not os.path.exists(groupby_file):
         raise ValueError("--groupby file does not exist!")
     start_time = time.time()
-
+    threads = 1 if args.locus else args.threads  # if locus by locus, no need to use multi-threading
     locus_dict = {}
     """
     groupby file:
@@ -152,28 +153,33 @@ def main():
     """
     with open(position_file, 'r') as f:  # read the sorted region file. The file is too big for the memory, so we have to sort it first and then process it locus by locus.
         last_chr = ""
+        last_locus = ""
         for line in f.readlines():
             chr, start, end, pos, read, rel_pos, methylation, strand, type = line.split()
             cpg_item = CpG(pos, rel_pos, methylation, type)
             locus = chr + ":" + start + "-" + end
             if chr == last_chr:
                 if locus in locus_dict[chr] and read in locus_dict[chr][locus].reads:
+                    if args.locus and last_locus != locus:
+                        print("--- Processing %s ---" % (last_locus))
+                        outputs.extend(multi_process_aggregate_func(locus_dict[chr], threads, args.len))
+                        del locus_dict[chr][last_locus]
                     read = locus_dict[chr][locus].get_read(read)
                     read.add_cpg(cpg_item)
             else:
                 if last_chr != "":
                     print("--- Processing %s ---" % (last_chr))
-                    outputs.extend(multi_process_aggregate_func(locus_dict[last_chr], args.threads, args.len))
+                    outputs.extend(multi_process_aggregate_func(locus_dict[last_chr], threads, args.len))
                     del locus_dict[last_chr]
                 if locus in locus_dict[chr] and read in locus_dict[chr][locus].reads:
                     read = locus_dict[chr][locus].get_read(read)
                     read.add_cpg(cpg_item)
                 last_chr = chr
         print("--- Processing %s ---" % (last_chr))
-        outputs.extend(multi_process_aggregate_func(locus_dict[last_chr], args.threads, args.len))
+        outputs.extend(multi_process_aggregate_func(locus_dict[last_chr], threads, args.len))
         del locus_dict[last_chr]
 
-    # if args.threads == 1:
+    # if args.threads == 1: 
     #     for i in locus_dict.keys():
     #         outputs.append(aggregate_func(locus_dict[i], args.len, args.aggregation))
     # else:
