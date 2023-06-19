@@ -162,7 +162,7 @@ def main():
                 if locus in locus_dict[chr] and read in locus_dict[chr][locus].reads:
                     if args.locus and last_locus != "" and last_locus != locus:
                         print("--- Processing %s ---" % (last_locus))
-                        outputs.extend(aggregate_func(locus_dict[chr][last_locus], args.len))
+                        outputs.append(aggregate_func(locus_dict[chr][last_locus], args.len))
                         del locus_dict[chr][last_locus]
                         last_locus = locus
                     read = locus_dict[chr][locus].get_read(read)
