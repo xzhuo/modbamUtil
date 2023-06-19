@@ -162,23 +162,25 @@ def main():
                 if locus in locus_dict[chr] and read in locus_dict[chr][locus].reads:
                     if args.locus and last_locus != "" and last_locus != locus:
                         print("--- Processing %s ---" % (last_locus))
-                        outputs.extend(multi_process_aggregate_func(locus_dict[chr], threads, args.len))
+                        outputs.extend(aggregate_func(locus_dict[chr][last_locus], args.len))
                         del locus_dict[chr][last_locus]
                         last_locus = locus
                     read = locus_dict[chr][locus].get_read(read)
                     read.add_cpg(cpg_item)
             else:
                 if last_chr != "":
-                    print("--- Processing %s ---" % (last_chr))
+                    print("--- Processing last locus for %s ---" % (last_chr))
                     outputs.extend(multi_process_aggregate_func(locus_dict[last_chr], threads, args.len))
+                    print("--- Delete %s ---" % (last_chr))
                     del locus_dict[last_chr]
                 if locus in locus_dict[chr] and read in locus_dict[chr][locus].reads:
                     read = locus_dict[chr][locus].get_read(read)
                     read.add_cpg(cpg_item)
                 last_chr = chr
                 last_locus = locus
-        print("--- Processing %s ---" % (last_chr))
+        print("--- Processing %s ---" % (last_locus))
         outputs.extend(multi_process_aggregate_func(locus_dict[last_chr], threads, args.len))
+        print("--- Delete last chr %s ---" % (last_chr))
         del locus_dict[last_chr]
 
     # if args.threads == 1: 
