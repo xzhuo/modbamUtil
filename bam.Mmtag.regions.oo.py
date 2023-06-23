@@ -128,10 +128,17 @@ def main():
 
     with open(args.out, "w") as out:
         for out_list in outputs:
+            last_status = ''
             for i in out_list:
+                # perl -lape '$status = $F[5]<0?"b":"a";$status = "i" if $status eq "a" && $last_status eq "b" && $F[3] == -1;$status = "i" if $last_status eq "i" && $F[3] == -1;$last_status=$status;$_.="\t$status"'
+                if i[5] < 0:
+                    status = 'b'
+                elif i[3] == -1 and (last_status == 'b' or last_status == 'i'):
+                    status = 'i'
+                last_status = status
                 # chr, chr.start, chr,end, chr.pos, read, read.pos, methylation, strand
-                out.write("{:s}\t{:d}\t{:d}\t{:d}\t{:s}\t{:d}\t{:.2f}\t{:s}\n".format(
-                        i[0],i[1],i[2],i[3],i[4],i[5],i[6],i[7]))
+                out.write("{:s}\t{:d}\t{:d}\t{:d}\t{:s}\t{:d}\t{:.2f}\t{:s}\t{:s}\n".format(
+                        i[0],i[1],i[2],i[3],i[4],i[5],i[6],i[7],status))
     end_time = time.time()
     print("--- %s hours ---" % ((end_time - start_time)/3600))
 
