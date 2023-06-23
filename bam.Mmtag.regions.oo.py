@@ -131,10 +131,13 @@ def main():
             last_status = ''
             for i in out_list:
                 # perl -lape '$status = $F[5]<0?"b":"a";$status = "i" if $status eq "a" && $last_status eq "b" && $F[3] == -1;$status = "i" if $last_status eq "i" && $F[3] == -1;$last_status=$status;$_.="\t$status"'
+                status
                 if i[5] < 0:
                     status = 'b'
                 elif i[3] == -1 and (last_status == 'b' or last_status == 'i'):
                     status = 'i'
+                else:
+                    status = 'a'
                 last_status = status
                 # chr, chr.start, chr,end, chr.pos, read, read.pos, methylation, strand
                 out.write("{:s}\t{:d}\t{:d}\t{:d}\t{:s}\t{:d}\t{:.2f}\t{:s}\t{:s}\n".format(
