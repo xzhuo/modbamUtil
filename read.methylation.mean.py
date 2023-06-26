@@ -75,8 +75,9 @@ class Read:
         self.cpg = []
 
     def methylation_list(self, start, length):
-        self.b_cpgs = [i.methylation for i in self.cpg if i.rel_pos < start * -1 and i.rel_pos >= length * -1 and i.pos > 0]
-        self.a_cpgs = [i.methylation for i in self.cpg if i.rel_pos > start and i.rel_pos <= length and i.pos > 0]
+        end = start + length
+        self.b_cpgs = [i.methylation for i in self.cpg if i.rel_pos < start * -1 and i.rel_pos >= end * -1 and i.pos > 0]
+        self.a_cpgs = [i.methylation for i in self.cpg if i.rel_pos > start and i.rel_pos <= end and i.pos > 0]
         self.i_cpgs = [i.methylation for i in self.cpg if i.type == "i"]
         # mean_methylation = sum(methylation_list)/len(methylation_list) if len(methylation_list)>0 else -1
 
