@@ -19,7 +19,7 @@ class Locus:
     def remove_reads(self):
         self.reads = {}
 
-    def aggregate_methylation(self, length):
+    def aggregate_methylation(self, start, length):
         empty_b_cpgs = []
         empty_a_cpgs = []
         insertion_b_cpgs = []
@@ -29,7 +29,7 @@ class Locus:
         total_insertion_reads = 0
         for i in self.reads:
             read = self.reads[i]
-            read.methylation_list(length)
+            read.methylation_list(start, length)
             if read.readtype == "a,b":
                 empty_b_cpgs.extend(read.b_cpgs)
                 empty_a_cpgs.extend(read.a_cpgs)
@@ -74,9 +74,9 @@ class Read:
     def remove_cpg(self):
         self.cpg = []
 
-    def methylation_list(self, length):
-        self.b_cpgs = [i.methylation for i in self.cpg if i.rel_pos < 0 and i.rel_pos > length * -1 and i.pos > 0]
-        self.a_cpgs = [i.methylation for i in self.cpg if i.rel_pos > 0 and i.rel_pos < length and i.pos > 0]
+    def methylation_list(self, start, length):
+        self.b_cpgs = [i.methylation for i in self.cpg if i.rel_pos < start * -1 and i.rel_pos >= length * -1 and i.pos > 0]
+        self.a_cpgs = [i.methylation for i in self.cpg if i.rel_pos > start and i.rel_pos <= length and i.pos > 0]
         self.i_cpgs = [i.methylation for i in self.cpg if i.type == "i"]
         # mean_methylation = sum(methylation_list)/len(methylation_list) if len(methylation_list)>0 else -1
 
@@ -87,18 +87,18 @@ class CpG:
         self.methylation = float(methylation)
         self.type = type
 
-def multi_process_aggregate_func(loci_chr, threads, length):
+def multi_process_aggregate_func(loci_chr, threads, start, length):
     outputs = []
     if threads == 1:
         for i in loci_chr.keys():
-            outputs.append(aggregate_func(loci_chr[i], length))
+            outputs.append(aggregate_func(loci_chr[i], start, length))
     else:
         with WorkerPool(n_jobs=threads) as pool:
-            outputs = pool.map(aggregate_func, zip(loci_chr.values(), repeat(length)), iterable_len=len(loci_chr.values()), progress_bar=True)
+            outputs = pool.map(aggregate_func, zip(loci_chr.values(), repeat(start), repeat(length)), iterable_len=len(loci_chr.values()), progress_bar=True)
     return outputs
 
-def aggregate_func(locus, length):
-    locus.aggregate_methylation(length)
+def aggregate_func(locus, start, length):
+    locus.aggregate_methylation(start, length)
     output = [locus.chr, locus.start, locus.end, locus.empty_b_hyper, locus.empty_b_all, locus.empty_a_hyper, locus.empty_a_all, locus.with_b_hyper, locus.with_b_all, locus.with_a_hyper, locus.with_a_all, locus.insertion_hyper, locus.insertion_all, locus.total_flanking_reads, locus.total_insertion_reads]
     return output
 
@@ -107,6 +107,7 @@ def main():
     parser.add_argument('-p', '--position_file', type=str, required=True, help='input file with each CpG in all reads')
     parser.add_argument('-g', '--groupby_file', type=str, required=True, help='input file of all reads with read type annotation')
     parser.add_argument('-o', '--output', type=str, required=True, help='output file')
+    parser.add_argument('-s', '--start', type=int, default=0, help='position outside of insertion to start averaging methylations')
     parser.add_argument('-l', '--len', type=int, default=500, help='length of flanking regions to average methylation')
     parser.add_argument('-c', '--locus', action=argparse.BooleanOptionalAction, default=False, help='if true, process locus by locus instead of chr by chr')
     parser.add_argument('-t', '--threads', type=int, default=1, help='multi-threading')
@@ -162,7 +163,7 @@ def main():
                 if locus in locus_dict[chr] and read in locus_dict[chr][locus].reads:
                     if args.locus and last_locus != "" and last_locus != locus:
                         print("--- Processing %s ---" % (last_locus))
-                        outputs.append(aggregate_func(locus_dict[chr][last_locus], args.len))
+                        outputs.append(aggregate_func(locus_dict[chr][last_locus], args.start, args.len))
                         del locus_dict[chr][last_locus]
                         last_locus = locus
                     read = locus_dict[chr][locus].get_read(read)
@@ -170,7 +171,7 @@ def main():
             else:
                 if last_chr != "":
                     print("--- Processing last locus for %s ---" % (last_chr))
-                    outputs.extend(multi_process_aggregate_func(locus_dict[last_chr], threads, args.len))
+                    outputs.extend(multi_process_aggregate_func(locus_dict[last_chr], threads, args.start, args.len))
                     print("--- Delete %s ---" % (last_chr))
                     del locus_dict[last_chr]
                 if locus in locus_dict[chr] and read in locus_dict[chr][locus].reads:
