@@ -181,7 +181,7 @@ def main():
                 last_chr = chr
                 last_locus = locus
         print("--- Processing %s ---" % (last_locus))
-        outputs.extend(multi_process_aggregate_func(locus_dict[last_chr], threads, args.len))
+        outputs.extend(multi_process_aggregate_func(locus_dict[last_chr], threads, args.start, args.len))
         print("--- Delete last chr %s ---" % (last_chr))
         del locus_dict[last_chr]
 
