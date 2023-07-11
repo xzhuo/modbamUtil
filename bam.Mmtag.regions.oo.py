@@ -35,7 +35,7 @@ class Interval:
         else:
             sys.exit("unknow interval type!")
     
-    def attach_modbase_list(self, window, bam):
+    def attach_modbase_list(self, window, bam, len_offset):
         flanking_window = (self.start - window if self.start > window else 0, self.end + window)
         self.modbase_list = []
         for read in bam.fetch(self.chr, flanking_window[0], flanking_window[1]):
@@ -49,6 +49,12 @@ class Interval:
             query_flanking_start = get_pos['find_query'][read_ref_start]
             query_flanking_end = get_pos['find_query'][read_ref_end]
             query_start = get_pos['find_query'][ref_pos]
+            insertion_regions = find_insertion(read)
+            try:
+                nearby_insertion = min(insertion_regions, key=lambda x:min(abs(x[0]-query_start), abs(x[1]-query_start)))
+                nearby_insertion = (-1,-1) if min(abs(nearby_insertion[0]-query_start), abs(nearby_insertion[1]-query_start)) > len_offset else nearby_insertion
+            except:
+                nearby_insertion = (-1,-1)
             query_name = read.query_name
             modbase_key = ('C', 1, 'm') if read.is_reverse else ('C', 0, 'm')
             strand = '-' if read.is_reverse else '+'
@@ -57,11 +63,24 @@ class Interval:
                 modbase_query_list = [j[0] for j in list(filter(lambda i: i[0] >= query_flanking_start and i[0] < query_flanking_end, modbase_list))]
                 modbase_ref_list = [get_pos['find_ref'][i] if i in get_pos['find_ref'] else -1 for i in modbase_query_list]
                 modbase_rel_pos_list = [i - query_start for i in modbase_query_list]
+                abi_list = []
+                if nearby_insertion != (-1,-1):
+                    abi_type = "insertion"
+                    for i in range(len(modbase_query_list)):
+                        if modbase_query_list[i] < nearby_insertion[0]:
+                            abi_list.append("b")
+                        elif modbase_query_list[i] >= nearby_insertion[0] and modbase_query_list[i] < nearby_insertion[1]:
+                            abi_list.append("i")
+                        else:
+                            abi_list.append("a")
+                else:
+                    abi_type = "empty"
+                    abi_list = ["b" if i< query_start else "a" for i in modbase_query_list]
                 modbase_perc_list = [j[1]/255 for j in list(filter(lambda i: i[0] >= query_flanking_start and i[0] < query_flanking_end, modbase_list))]
-                modbase_pos_perc = list(zip(modbase_rel_pos_list, modbase_ref_list, modbase_perc_list))
+                modbase_pos_perc = list(zip(modbase_rel_pos_list, modbase_ref_list, modbase_perc_list, abi_list))
             except:
                 modbase_pos_perc = []
-            self.modbase_list.append({'read': query_name, 'strand': strand, 'modbase_pos_perc': modbase_pos_perc})
+            self.modbase_list.append({'read': query_name, 'strand': strand, 'abi_type': abi_type, 'modbase_pos_perc': modbase_pos_perc})
 
 
 def convert_pos(read):
@@ -71,19 +90,33 @@ def convert_pos(read):
         result_dict['find_query'][i[1]] = i[0]
     return result_dict
 
+def find_insertion(read, soft_clip=True, length=50):
+    """
+    find the insertion query positions in the read
+    """
+    curr_pos = 0
+    insertions = []
+    for i in read.cigartuples:
+        if i[0] == 1 and i[1] > length:
+            insertions.append((curr_pos, curr_pos + i[1]))
+        if soft_clip and i[0] == 4 and i[1] > length:
+            insertions.append((curr_pos, curr_pos + i[1]))
+        if i[0] == 0 or i[0] == 1 or i[0] == 4 or i[0] == 7 or i[0] == 8:
+            curr_pos += i[1]
+    return insertions
 
-def intersect_methylation(bam_file, interval, window):
+def intersect_methylation(bam_file, interval, window, len_offset):
     """
     summarize the methylation of each CpG per read in the defined regions
     """
 
     out_list = []
     bam = pysam.AlignmentFile(bam_file, threads = 4, check_sq=False)
-    interval.attach_modbase_list(window, bam)
+    interval.attach_modbase_list(window, bam, len_offset)
     for i in interval.modbase_list:
         for j in i['modbase_pos_perc']:
             # chr, chr.start, chr,end, chr.pos, read, read.pos, methylation, strand
-            out_list.append([interval.chr, interval.start, interval.end, j[1], i['read'], j[0], j[2], i['strand']])
+            out_list.append([interval.chr, interval.start, interval.end, j[1], i['read'], j[0], j[2], i['strand'], j[3], i['abi_type']])
     return out_list
 
 
@@ -97,7 +130,7 @@ def main():
                         help='a vcf/bed file of genomeic regions that will be used to summarize the methylation')
     parser.add_argument('-f', '--form', type=str, required=True,
                         help='The file format of the genomic region file, only vcf or bed like files are supported.')
-    parser.add_argument('-l', '--len', type=int, default=50,
+    parser.add_argument('-l', '--len_offset', type=int, default=20,
                         help='length and coordinate offset from vcf to the bam file. Only insertions with coordinate offset < len and SVlength difference < len will be considered')
     parser.add_argument('-w', '--window', type=int, default=2000,
                         help='flanking window on both ends of identified insrtions of the vcf file. CpG methylation within this window on both ends will be summarized')
@@ -121,27 +154,18 @@ def main():
 
     if args.threads == 1:
         for i in interval_array:
-            outputs.append(intersect_methylation(bam_file, i, args.window))
+            outputs.append(intersect_methylation(bam_file, i, args.window, args.len_offset))
     else:
         with WorkerPool(n_jobs=args.threads) as pool:
-            outputs = pool.imap(intersect_methylation, zip(repeat(bam_file), interval_array, repeat(args.window)), iterable_len=len(interval_array), progress_bar=True)
+            outputs = pool.imap(intersect_methylation, zip(repeat(bam_file), interval_array, repeat(args.window), repeat(args.len_offset)), iterable_len=len(interval_array), progress_bar=True)
 
     with open(args.out, "w") as out:
         for out_list in outputs:
-            last_status = ''
             for i in out_list:
                 # perl -lape '$status = $F[5]<0?"b":"a";$status = "i" if $status eq "a" && $last_status eq "b" && $F[3] == -1;$status = "i" if $last_status eq "i" && $F[3] == -1;$last_status=$status;$_.="\t$status"'
-                status
-                if i[5] < 0:
-                    status = 'b'
-                elif i[3] == -1 and (last_status == 'b' or last_status == 'i'):
-                    status = 'i'
-                else:
-                    status = 'a'
-                last_status = status
                 # chr, chr.start, chr,end, chr.pos, read, read.pos, methylation, strand
-                out.write("{:s}\t{:d}\t{:d}\t{:d}\t{:s}\t{:d}\t{:.2f}\t{:s}\t{:s}\n".format(
-                        i[0],i[1],i[2],i[3],i[4],i[5],i[6],i[7],status))
+                out.write("{:s}\t{:d}\t{:d}\t{:d}\t{:s}\t{:d}\t{:.2f}\t{:s}\t{:s}\t{:s}\n".format(
+                        i[0],i[1],i[2],i[3],i[4],i[5],i[6],i[7],i[8],i[9]))
     end_time = time.time()
     print("--- %s hours ---" % ((end_time - start_time)/3600))
 
