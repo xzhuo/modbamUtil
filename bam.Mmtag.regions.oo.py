@@ -80,6 +80,7 @@ class Interval:
                 modbase_pos_perc = list(zip(modbase_rel_pos_list, modbase_ref_list, modbase_perc_list, abi_list))
             except:
                 modbase_pos_perc = []
+                abi_type = "absent"
             self.modbase_list.append({'read': query_name, 'strand': strand, 'abi_type': abi_type, 'modbase_pos_perc': modbase_pos_perc})
 
 
