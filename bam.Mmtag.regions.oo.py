@@ -150,6 +150,8 @@ def main():
     outputs = []
     with open(region_file, 'r') as f:  # read the region file
         for line in f.readlines():
+            if line.startswith("#"):
+                continue
             line_item = Interval(line.strip(), args.form)
             interval_array.append(line_item)
 
