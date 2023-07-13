@@ -1,5 +1,6 @@
 import sys
 import os
+import gzip
 import argparse
 import pysam
 from itertools import repeat
@@ -120,6 +121,11 @@ def intersect_methylation(bam_file, interval, window, len_offset):
             out_list.append([interval.chr, interval.start, interval.end, j[1], i['read'], j[0], j[2], i['strand'], j[3], i['abi_type']])
     return out_list
 
+def openfile(filename, mode='r'):
+    if filename.endswith('.gz'):
+        return gzip.open(filename, mode) 
+    else:
+        return open(filename, mode)
 
 def main():
     parser = argparse.ArgumentParser(description='calculate CpG methylation average of inserted regions in the bam file')
@@ -148,8 +154,8 @@ def main():
     start_time = time.time()
     interval_array = []
     outputs = []
-    with open(region_file, 'r') as f:  # read the region file
-        for line in f.readlines():
+    with openfile(region_file, 'r') as f:  # read the region file
+        for line in f:
             if line.startswith("#"):
                 continue
             line_item = Interval(line.strip(), args.form)
