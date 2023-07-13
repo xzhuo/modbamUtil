@@ -154,7 +154,7 @@ def main():
     start_time = time.time()
     interval_array = []
     outputs = []
-    with openfile(region_file, 'r') as f:  # read the region file
+    with openfile(region_file, 'rt') as f:  # read the region file
         for line in f:
             if line.startswith("#"):
                 continue
