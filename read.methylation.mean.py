@@ -14,7 +14,8 @@ class Locus:
         self.reads = {}
 
     def add_read(self, read):
-        self.reads[read.name] = read
+        if read.name not in self.reads:
+            self.reads[read.name] = read
 
     def remove_reads(self):
         self.reads = {}
@@ -30,11 +31,11 @@ class Locus:
         for i in self.reads:
             read = self.reads[i]
             read.methylation_list(start, length)
-            if read.readtype == "a,b":
+            if read.readtype == "a,b" or read.readtype == "empty":
                 empty_b_cpgs.extend(read.b_cpgs)
                 empty_a_cpgs.extend(read.a_cpgs)
                 total_flanking_reads += 1
-            elif read.readtype == "a,b,i":
+            elif read.readtype == "a,b,i" or read.readtype == "insertion":
                 i_cpgs.extend(read.i_cpgs)
                 insertion_b_cpgs.extend(read.b_cpgs)
                 insertion_a_cpgs.extend(read.a_cpgs)
@@ -105,85 +106,146 @@ def aggregate_func(locus, start, length):
 
 def main():
     parser = argparse.ArgumentParser(description='Calculate mean methylation of both flanking and insertion regions of all reads')
-    parser.add_argument('-p', '--position_file', type=str, required=True, help='input file with each CpG in all reads')
-    parser.add_argument('-g', '--groupby_file', type=str, required=True, help='input file of all reads with read type annotation')
+    parser.add_argument('-p', '--position_file', type=str, required=False, help='input file with each CpG in all reads')
+    parser.add_argument('-g', '--groupby_file', type=str, required=False, help='input file of all reads with read type annotation')
+    parser.add_argument('-i', '--integrated_file', type=str, required=False, help='The single input file of all reads if it contains all the info')
     parser.add_argument('-o', '--output', type=str, required=True, help='output file')
     parser.add_argument('-s', '--start', type=int, default=0, help='position outside of insertion to start averaging methylations')
     parser.add_argument('-l', '--len', type=int, default=500, help='length of flanking regions to average methylation')
     parser.add_argument('-c', '--locus', action=argparse.BooleanOptionalAction, default=False, help='if true, process locus by locus instead of chr by chr')
     parser.add_argument('-t', '--threads', type=int, default=1, help='multi-threading')
     args = parser.parse_args()
-    position_file = os.path.abspath(args.position_file)
-    groupby_file = os.path.abspath(args.groupby_file)
-    if not os.path.exists(position_file):
-        raise ValueError("--position file does not exist!")
-    if not os.path.exists(groupby_file):
-        raise ValueError("--groupby file does not exist!")
+    one_file_flag = False
+    if args.integrated_file is not None:
+        integrated_file = os.path.abspath(args.integrated_file)
+        one_file_flag = True
+        if not os.path.exists(integrated_file):
+            raise ValueError("--integrated file does not exist!")
+    else:
+        position_file = os.path.abspath(args.position_file)
+        groupby_file = os.path.abspath(args.groupby_file)
+        if not os.path.exists(position_file):
+            raise ValueError("--position file does not exist!")
+        if not os.path.exists(groupby_file):
+            raise ValueError("--groupby file does not exist!")
     start_time = time.time()
     threads = 1 if args.locus else args.threads  # if locus by locus, no need to use multi-threading
     locus_dict = {}
-    """
-    groupby file:
-    chr1	10861	10862	m64136_200710_174522/11207845/ccs	12	a,b
-    chr1	10861	10862	m64136_200710_174522/39323705/ccs	9	a,b
-    chr1	10861	10862	m64136_200711_235843/89718828/ccs	82	a,b
-    """
-    with open(groupby_file, 'r') as f:  # read the region file
-        for line in f.readlines():
-            chr, start, end, read, CGins, readtype = line.split()
-            locus_name = chr + ":" + start + "-" + end
-            read_item = Read(read, CGins, readtype)
-            if chr not in locus_dict:
-                locus_dict[chr] = {}
-                locus_dict[chr][locus_name] = Locus(chr, start, end)
-                locus_dict[chr][locus_name].add_read(read_item)
-            elif locus_name not in locus_dict[chr]:
-                locus_dict[chr][locus_name] = Locus(chr, start, end)
-                locus_dict[chr][locus_name].add_read(read_item)
-            else:
-                locus_dict[chr][locus_name].add_read(read_item)
-    groupby_time = time.time()
-    print("--- It took %s hours to read the groupby file ---" % ((groupby_time - start_time)/3600))
 
     outputs = []
 
-    """
-    position file:
-    chr1	10861	10862	10082	m64136_200710_174522/11207845/ccs	-796	0.96	+	b
-    chr1	10861	10862	10207	m64136_200710_174522/11207845/ccs	-670	0.98	+	b
-    chr1	10861	10862	10468	m64136_200710_174522/11207845/ccs	-418	1.00	+	b
-    """
-    with open(position_file, 'r') as f:  # read the sorted region file. The file is too big for the memory, so we have to sort it first and then process it locus by locus.
-        last_chr = ""
-        last_locus = ""
-        for line in f.readlines():
-            chr, start, end, pos, read, rel_pos, methylation, strand, type = line.split()
-            cpg_item = CpG(pos, rel_pos, methylation, type)
-            locus = chr + ":" + start + "-" + end
-            if chr == last_chr:
-                if locus in locus_dict[chr] and read in locus_dict[chr][locus].reads:
-                    if args.locus and last_locus != "" and last_locus != locus:
+    if not one_file_flag: # processing using two input files. One for position and one for groupby.
+        """
+        groupby file:
+        chr1	10861	10862	m64136_200710_174522/11207845/ccs	12	a,b
+        chr1	10861	10862	m64136_200710_174522/39323705/ccs	9	a,b
+        chr1	10861	10862	m64136_200711_235843/89718828/ccs	82	a,b
+        """
+        with open(groupby_file, 'r') as f:  # read the region file
+            for line in f.readlines():
+                chr, start, end, read, CGins, readtype = line.split()
+                locus_name = chr + ":" + start + "-" + end
+                read_item = Read(read, CGins, readtype)
+                if chr not in locus_dict:
+                    locus_dict[chr] = {}
+                    locus_dict[chr][locus_name] = Locus(chr, start, end)
+                    locus_dict[chr][locus_name].add_read(read_item)
+                elif locus_name not in locus_dict[chr]:
+                    locus_dict[chr][locus_name] = Locus(chr, start, end)
+                    locus_dict[chr][locus_name].add_read(read_item)
+                else:
+                    locus_dict[chr][locus_name].add_read(read_item)
+        groupby_time = time.time()
+        print("--- It took %s hours to read the groupby file ---" % ((groupby_time - start_time)/3600))
+
+
+        """
+        position file:
+        chr1	10861	10862	10082	m64136_200710_174522/11207845/ccs	-796	0.96	+	b
+        chr1	10861	10862	10207	m64136_200710_174522/11207845/ccs	-670	0.98	+	b
+        chr1	10861	10862	10468	m64136_200710_174522/11207845/ccs	-418	1.00	+	b
+        """
+        with open(position_file, 'r') as f:  # read the sorted region file. The file is too big for the memory, so we have to sort it first and then process it locus by locus.
+            last_chr = ""
+            last_locus = ""
+            for line in f.readlines():
+                chr, start, end, pos, read, rel_pos, methylation, strand, type = line.split()
+                cpg_item = CpG(pos, rel_pos, methylation, type)
+                locus = chr + ":" + start + "-" + end
+                if chr == last_chr:
+                    if locus in locus_dict[chr] and read in locus_dict[chr][locus].reads:
+                        if args.locus and last_locus != "" and last_locus != locus:
+                            print("--- Processing %s ---" % (last_locus))
+                            outputs.append(aggregate_func(locus_dict[chr][last_locus], args.start, args.len))
+                            del locus_dict[chr][last_locus]
+                            last_locus = locus
+                        read = locus_dict[chr][locus].get_read(read)
+                        read.add_cpg(cpg_item)
+                else:
+                    if last_chr != "":
+                        print("--- Processing last locus for %s ---" % (last_chr))
+                        outputs.extend(multi_process_aggregate_func(locus_dict[last_chr], threads, args.start, args.len))
+                        print("--- Delete %s ---" % (last_chr))
+                        del locus_dict[last_chr]
+                    if locus in locus_dict[chr] and read in locus_dict[chr][locus].reads:
+                        read = locus_dict[chr][locus].get_read(read)
+                        read.add_cpg(cpg_item)
+                    last_chr = chr
+                    last_locus = locus
+            print("--- Processing %s ---" % (last_locus))
+            outputs.extend(multi_process_aggregate_func(locus_dict[last_chr], threads, args.start, args.len))
+            print("--- Delete last chr %s ---" % (last_chr))
+            del locus_dict[last_chr]
+    else:
+        """
+        chr1	10799	10799	10468	m64043_200521_171703/7275077/ccs	-340	0.99	+	b	empty
+        chr1	10799	10799	10470	m64043_200521_171703/7275077/ccs	-338	1.00	+	b	empty
+        chr1	10799	10799	10483	m64043_200521_171703/7275077/ccs	-325	0.78	+	b	empty
+        """
+        with open(integrated_file, 'r') as f:  # read the sorted region file. The file is too big for the memory, so we have to sort it first and then process it locus by locus.
+            last_chr = ""
+            last_locus = ""
+            for line in f.readlines():
+                chr, start, end, pos, read, rel_pos, methylation, strand, type, readtype = line.split()
+                locus_name = chr + ":" + start + "-" + end
+                read_item = Read(read, 0, readtype)
+                cpg_item = CpG(pos, rel_pos, methylation, type)
+
+                if chr not in locus_dict:
+                    locus_dict[chr] = {}
+                    locus_dict[chr][locus_name] = Locus(chr, start, end)
+                    locus_dict[chr][locus_name].add_read(read_item)
+                    read = locus_dict[chr][locus_name].get_read(read)
+                    read.add_cpg(cpg_item)
+                elif locus_name not in locus_dict[chr]:
+                    locus_dict[chr][locus_name] = Locus(chr, start, end)
+                    locus_dict[chr][locus_name].add_read(read_item)
+                    read = locus_dict[chr][locus_name].get_read(read)
+                    read.add_cpg(cpg_item)
+                else:
+                    locus_dict[chr][locus_name].add_read(read_item)
+                    read = locus_dict[chr][locus_name].get_read(read)
+                    read.add_cpg(cpg_item)
+
+                if chr == last_chr:
+                    if args.locus and last_locus != "" and last_locus != locus_name:
                         print("--- Processing %s ---" % (last_locus))
                         outputs.append(aggregate_func(locus_dict[chr][last_locus], args.start, args.len))
                         del locus_dict[chr][last_locus]
-                        last_locus = locus
-                    read = locus_dict[chr][locus].get_read(read)
-                    read.add_cpg(cpg_item)
-            else:
-                if last_chr != "":
-                    print("--- Processing last locus for %s ---" % (last_chr))
-                    outputs.extend(multi_process_aggregate_func(locus_dict[last_chr], threads, args.start, args.len))
-                    print("--- Delete %s ---" % (last_chr))
-                    del locus_dict[last_chr]
-                if locus in locus_dict[chr] and read in locus_dict[chr][locus].reads:
-                    read = locus_dict[chr][locus].get_read(read)
-                    read.add_cpg(cpg_item)
-                last_chr = chr
-                last_locus = locus
-        print("--- Processing %s ---" % (last_locus))
-        outputs.extend(multi_process_aggregate_func(locus_dict[last_chr], threads, args.start, args.len))
-        print("--- Delete last chr %s ---" % (last_chr))
-        del locus_dict[last_chr]
+                        last_locus = locus_name
+
+                else:
+                    if last_chr != "":
+                        print("--- Processing last locus for %s ---" % (last_chr))
+                        outputs.extend(multi_process_aggregate_func(locus_dict[last_chr], threads, args.start, args.len))
+                        print("--- Delete %s ---" % (last_chr))
+                        del locus_dict[last_chr]
+                    last_chr = chr
+                    last_locus = locus_name
+            print("--- Processing %s ---" % (last_locus))
+            outputs.extend(multi_process_aggregate_func(locus_dict[last_chr], threads, args.start, args.len))
+            print("--- Delete last chr %s ---" % (last_chr))
+            del locus_dict[last_chr]
 
     # if args.threads == 1: 
     #     for i in locus_dict.keys():
