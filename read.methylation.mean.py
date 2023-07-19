@@ -130,7 +130,6 @@ def main():
             raise ValueError("--groupby file does not exist!")
     start_time = time.time()
     threads = 1 if args.locus else args.threads  # if locus by locus, no need to use multi-threading
-    locus_dict = {}
 
     outputs = []
 
@@ -141,6 +140,7 @@ def main():
         chr1	10861	10862	m64136_200710_174522/39323705/ccs	9	a,b
         chr1	10861	10862	m64136_200711_235843/89718828/ccs	82	a,b
         """
+        locus_dict = {}
         with open(groupby_file, 'r') as f:  # read the region file
             for line in f.readlines():
                 chr, start, end, read, CGins, readtype = line.split()
@@ -203,49 +203,31 @@ def main():
         chr1	10799	10799	10483	m64043_200521_171703/7275077/ccs	-325	0.78	+	b	empty
         """
         with open(integrated_file, 'r') as f:  # read the sorted region file. The file is too big for the memory, so we have to sort it first and then process it locus by locus.
-            last_chr = ""
             last_locus = ""
+            last_read = ""
+            locus_item = None
             for line in f.readlines():
                 chr, start, end, pos, read, rel_pos, methylation, strand, type, readtype = line.split()
                 locus_name = chr + ":" + start + "-" + end
-                read_item = Read(read, 0, readtype)
                 cpg_item = CpG(pos, rel_pos, methylation, type)
 
-                if chr not in locus_dict:
-                    locus_dict[chr] = {}
-                    locus_dict[chr][locus_name] = Locus(chr, start, end)
-                    locus_dict[chr][locus_name].add_read(read_item)
-                    read = locus_dict[chr][locus_name].get_read(read)
-                    read.add_cpg(cpg_item)
-                elif locus_name not in locus_dict[chr]:
-                    locus_dict[chr][locus_name] = Locus(chr, start, end)
-                    locus_dict[chr][locus_name].add_read(read_item)
-                    read = locus_dict[chr][locus_name].get_read(read)
-                    read.add_cpg(cpg_item)
-                else:
-                    locus_dict[chr][locus_name].add_read(read_item)
-                    read = locus_dict[chr][locus_name].get_read(read)
-                    read.add_cpg(cpg_item)
-
-                if chr == last_chr:
-                    if args.locus and last_locus != "" and last_locus != locus_name:
+                if args.locus and last_locus != locus_name:
+                    if last_locus != "":
                         print("--- Processing %s ---" % (last_locus))
-                        outputs.append(aggregate_func(locus_dict[chr][last_locus], args.start, args.len))
-                        del locus_dict[chr][last_locus]
-                        last_locus = locus_name
-
-                else:
-                    if last_chr != "":
-                        print("--- Processing last locus for %s ---" % (last_chr))
-                        outputs.extend(multi_process_aggregate_func(locus_dict[last_chr], threads, args.start, args.len))
-                        print("--- Delete %s ---" % (last_chr))
-                        del locus_dict[last_chr]
-                    last_chr = chr
+                        outputs.append(aggregate_func(locus_item, args.start, args.len))
+                    locus_item = Locus(chr, start, end)
                     last_locus = locus_name
+
+                if read != last_read:
+                    read_item = Read(read, 0, readtype)
+                    locus_item.add_read(read_item)
+                    last_read = read
+
+                read = locus_item.get_read(read)
+                read.add_cpg(cpg_item)
+
             print("--- Processing %s ---" % (last_locus))
-            outputs.extend(multi_process_aggregate_func(locus_dict[last_chr], threads, args.start, args.len))
-            print("--- Delete last chr %s ---" % (last_chr))
-            del locus_dict[last_chr]
+            outputs.append(aggregate_func(locus_item, args.start, args.len))
 
     # if args.threads == 1: 
     #     for i in locus_dict.keys():
