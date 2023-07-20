@@ -216,9 +216,11 @@ def main():
                         print("--- Processing %s ---" % (last_locus))
                         outputs.append(aggregate_func(locus_item, args.start, args.len))
                     locus_item = Locus(chr, start, end)
+                    read_item = Read(read, 0, readtype)
+                    locus_item.add_read(read_item)
                     last_locus = locus_name
-
-                if read != last_read:
+                    last_read = read
+                elif read != last_read:
                     read_item = Read(read, 0, readtype)
                     locus_item.add_read(read_item)
                     last_read = read
