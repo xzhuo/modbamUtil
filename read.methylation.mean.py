@@ -206,7 +206,7 @@ def main():
             last_locus = ""
             last_read = ""
             locus_item = None
-            for line in f.readlines():
+            for line in f:
                 chr, start, end, pos, read, rel_pos, methylation, strand, type, readtype = line.split()
                 locus_name = chr + ":" + start + "-" + end
                 cpg_item = CpG(pos, rel_pos, methylation, type)
