@@ -162,19 +162,23 @@ def main():
             interval_array.append(line_item)
 
     if args.threads == 1:
-        for i in interval_array:
-            outputs.append(intersect_methylation(bam_file, i, args.window, args.len_offset))
+        with open(args.out, "w") as out:
+            for j in interval_array:
+                output_list = intersect_methylation(bam_file, j, args.window, args.len_offset)
+                for i in output_list:
+                    out.write("{:s}\t{:d}\t{:d}\t{:d}\t{:s}\t{:d}\t{:.2f}\t{:s}\t{:s}\t{:s}\n".format(
+                            i[0],i[1],i[2],i[3],i[4],i[5],i[6],i[7],i[8],i[9]))
     else:
         with WorkerPool(n_jobs=args.threads) as pool:
             outputs = pool.imap(intersect_methylation, zip(repeat(bam_file), interval_array, repeat(args.window), repeat(args.len_offset)), iterable_len=len(interval_array), progress_bar=True)
 
-    with open(args.out, "w") as out:
-        for out_list in outputs:
-            for i in out_list:
-                # perl -lape '$status = $F[5]<0?"b":"a";$status = "i" if $status eq "a" && $last_status eq "b" && $F[3] == -1;$status = "i" if $last_status eq "i" && $F[3] == -1;$last_status=$status;$_.="\t$status"'
-                # chr, chr.start, chr,end, chr.pos, read, read.pos, methylation, strand
-                out.write("{:s}\t{:d}\t{:d}\t{:d}\t{:s}\t{:d}\t{:.2f}\t{:s}\t{:s}\t{:s}\n".format(
-                        i[0],i[1],i[2],i[3],i[4],i[5],i[6],i[7],i[8],i[9]))
+        with open(args.out, "w") as out:
+            for out_list in outputs:
+                for i in out_list:
+                    # perl -lape '$status = $F[5]<0?"b":"a";$status = "i" if $status eq "a" && $last_status eq "b" && $F[3] == -1;$status = "i" if $last_status eq "i" && $F[3] == -1;$last_status=$status;$_.="\t$status"'
+                    # chr, chr.start, chr,end, chr.pos, read, read.pos, methylation, strand
+                    out.write("{:s}\t{:d}\t{:d}\t{:d}\t{:s}\t{:d}\t{:.2f}\t{:s}\t{:s}\t{:s}\n".format(
+                            i[0],i[1],i[2],i[3],i[4],i[5],i[6],i[7],i[8],i[9]))
     end_time = time.time()
     print("--- %s hours ---" % ((end_time - start_time)/3600))
 
