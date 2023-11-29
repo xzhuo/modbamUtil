@@ -217,8 +217,8 @@ def main():
                 if args.locus and last_locus != locus_name:
                     if last_locus != "":
                         print("--- Processing %s ---" % (last_locus))
-                        for start in starts:
-                            outputs.append(aggregate_func(locus_item, start, window_size))
+                        for i in starts:
+                            outputs.append(aggregate_func(locus_item, i, window_size))
 
                     locus_item = Locus(chr, start, end)
                     read_item = Read(read, 0, readtype)
@@ -234,8 +234,8 @@ def main():
                 read.add_cpg(cpg_item)
 
             print("--- Processing %s ---" % (last_locus))
-            for start in starts:
-                outputs.append(aggregate_func(locus_item, start, window_size))
+            for i in starts:
+                outputs.append(aggregate_func(locus_item, i, window_size))
 
     # if args.threads == 1: 
     #     for i in locus_dict.keys():
