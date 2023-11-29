@@ -101,7 +101,7 @@ def multi_process_aggregate_func(loci_chr, threads, start, length):
 
 def aggregate_func(locus, start, length):
     locus.aggregate_methylation(start, length)
-    output = [locus.chr, locus.start, locus.end, locus.empty_b_hyper, locus.empty_b_all, locus.empty_a_hyper, locus.empty_a_all, locus.with_b_hyper, locus.with_b_all, locus.with_a_hyper, locus.with_a_all, locus.insertion_hyper, locus.insertion_all, locus.total_flanking_reads, locus.total_insertion_reads]
+    output = [locus.chr, locus.start, locus.end, locus.empty_b_hyper, locus.empty_b_all, locus.empty_a_hyper, locus.empty_a_all, locus.with_b_hyper, locus.with_b_all, locus.with_a_hyper, locus.with_a_all, locus.insertion_hyper, locus.insertion_all, locus.total_flanking_reads, locus.total_insertion_reads, start]
     return output
 
 def main():
@@ -112,6 +112,7 @@ def main():
     parser.add_argument('-o', '--output', type=str, required=True, help='output file')
     parser.add_argument('-s', '--start', type=int, default=0, help='position outside of insertion to start averaging methylations')
     parser.add_argument('-l', '--len', type=int, default=500, help='length of flanking regions to average methylation')
+    parser.add_argument('-w', '--window_number', type=int, default=1, help='number of sliding windows within the flanking region length. Only compatible while using integrated file option')
     parser.add_argument('-c', '--locus', action=argparse.BooleanOptionalAction, default=False, help='if true, process locus by locus instead of chr by chr')
     parser.add_argument('-t', '--threads', type=int, default=1, help='multi-threading')
     args = parser.parse_args()
@@ -202,6 +203,8 @@ def main():
         chr1	10799	10799	10470	m64043_200521_171703/7275077/ccs	-338	1.00	+	b	empty
         chr1	10799	10799	10483	m64043_200521_171703/7275077/ccs	-325	0.78	+	b	empty
         """
+        window_size = int(args.len/args.window_number)
+        starts = range(args.start, args.len, window_size)
         with open(integrated_file, 'r') as f:  # read the sorted region file. The file is too big for the memory, so we have to sort it first and then process it locus by locus.
             last_locus = ""
             last_read = ""
@@ -214,7 +217,9 @@ def main():
                 if args.locus and last_locus != locus_name:
                     if last_locus != "":
                         print("--- Processing %s ---" % (last_locus))
-                        outputs.append(aggregate_func(locus_item, args.start, args.len))
+                        for start in starts:
+                            outputs.append(aggregate_func(locus_item, start, window_size))
+
                     locus_item = Locus(chr, start, end)
                     read_item = Read(read, 0, readtype)
                     locus_item.add_read(read_item)
@@ -229,7 +234,8 @@ def main():
                 read.add_cpg(cpg_item)
 
             print("--- Processing %s ---" % (last_locus))
-            outputs.append(aggregate_func(locus_item, args.start, args.len))
+            for start in starts:
+                outputs.append(aggregate_func(locus_item, start, window_size))
 
     # if args.threads == 1: 
     #     for i in locus_dict.keys():
@@ -239,11 +245,11 @@ def main():
     #         outputs = pool.map(aggregate_func, zip(locus_dict.values(), repeat(args.len), repeat(args.aggregation)), iterable_len=len(locus_dict.values()), progress_bar=True)
 
     with open(args.output, "w") as out:
-        out.write("chr\tstart\tend\tempty_before_hyper\tempty_before_all\tempty_after_hyper\tempty_after_all\twith_before_hyper\twith_before_all\twith_after_hyper\twith_after_all\tinsertion_hyper\tinsertion_all\ttotal_flanking_reads\ttotal_insertion_reads\n")
+        out.write("chr\tstart\tend\tempty_before_hyper\tempty_before_all\tempty_after_hyper\tempty_after_all\twith_before_hyper\twith_before_all\twith_after_hyper\twith_after_all\tinsertion_hyper\tinsertion_all\ttotal_flanking_reads\ttotal_insertion_reads\tdistance\n")
         for i in outputs:
             if len(i) > 0:
-                out.write("{:s}\t{:d}\t{:d}\t{:d}\t{:d}\t{:d}\t{:d}\t{:d}\t{:d}\t{:d}\t{:d}\t{:d}\t{:d}\t{:d}\t{:d}\n".format(
-                    i[0], i[1], i[2], i[3], i[4], i[5], i[6], i[7], i[8], i[9], i[10], i[11], i[12], i[13], i[14]))
+                out.write("{:s}\t{:d}\t{:d}\t{:d}\t{:d}\t{:d}\t{:d}\t{:d}\t{:d}\t{:d}\t{:d}\t{:d}\t{:d}\t{:d}\t{:d}\t{:d}\n".format(
+                    i[0], i[1], i[2], i[3], i[4], i[5], i[6], i[7], i[8], i[9], i[10], i[11], i[12], i[13], i[14], i[15]))
 
     end_time = time.time()
     print("--- In total it took %s hours ---" % ((end_time - start_time)/3600))
