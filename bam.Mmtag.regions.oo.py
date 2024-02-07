@@ -44,9 +44,11 @@ class Interval:
             if read.is_supplementary or read.is_secondary or read.is_unmapped:
                 continue
             reads.append(read)
-        if len(reads) < depth_filter:
+        if len(reads) < depth_filter:  # Remove regions with read depth too high (100X by default). Potential mapping errors.
             for read in reads:
                 all_ref_pos = read.get_reference_positions()
+                if min(all_ref_pos) > self.start or max(all_ref_pos) < self.end:
+                    continue
                 read_ref_start = min(all_ref_pos, key=lambda x:abs(x-flanking_window[0]))
                 read_ref_end = min(all_ref_pos, key=lambda x:abs(x-flanking_window[1]))
                 ref_pos = min(all_ref_pos, key=lambda x:abs(x-self.start))
