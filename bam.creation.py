@@ -39,7 +39,6 @@ def attach (fasta, ml_dict, out):
                 pos_dict = ml_dict[record.id]
                 mm_list = [c_list.index(pos_dict["pos"][i]) - c_list.index(pos_dict["pos"][i-1]) - 1 if i > 0 else c_list.index(pos_dict["pos"][i]) for i in range(len(pos_dict["pos"]))]
                 mm_tag = 'C+m?,' + ','.join([str(i) for i in mm_list]) + ';'
-                ml_tag = ','.join([str(i) for i in pos_dict["ml"]])
                 a.flag = 4
                 a.set_tag('MM', mm_tag, value_type='Z')
                 a.set_tag('ML', value = pos_dict["ml"])
