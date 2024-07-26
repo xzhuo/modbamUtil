@@ -1,6 +1,7 @@
 # Create a unaligned bam file from a fasta file, and attach data from an associated bed file in auxiliary tags.
 import os
 import argparse
+import re
 import pysam
 from Bio import SeqIO
 
@@ -31,10 +32,20 @@ def attach (fasta, ml_dict, out):
             a = pysam.AlignedSegment()
             a.query_name = record.id
             a.query_sequence = str(record.seq)
-            pos_dict = ml_dict[record.id]
-            a.flag = 4
-            breakpoint()
-            outf.write(a)
+            c_list = []
+            for match in re.finditer(r'C', a.query_sequence, flags=re.IGNORECASE):
+                c_list.append(match.start())
+            try: 
+                pos_dict = ml_dict[record.id]
+                mm_list = [c_list.index(pos_dict["pos"][i]) - c_list.index(pos_dict["pos"][i-1]) - 1 if i > 0 else c_list.index(pos_dict["pos"][i]) for i in range(len(pos_dict["pos"]))]
+                mm_tag = 'C+m?,' + ','.join([str(i) for i in mm_list]) + ';'
+                ml_tag = ','.join([str(i) for i in pos_dict["ml"]])
+                a.flag = 4
+                a.set_tag('MM', mm_tag, value_type='Z')
+                a.set_tag('ML', value = pos_dict["ml"])
+                outf.write(a)
+            except KeyError:
+                print("No CG site for ", record.id)
 
 def main():
     parser = argparse.ArgumentParser(description='create a bam file from a fasta file and a bed file')
