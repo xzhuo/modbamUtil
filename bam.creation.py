@@ -15,7 +15,7 @@ def process_bed(bed):
     with open(bed, "r") as f:
         for line in f:
             line = line.strip().split()
-            name = line[0]+":"+line[1]+"-"+line[2]
+            name = line[3]
             pos = int(line[7]) - int(line[1])
             score = float(line[9])
             ml = round(score*255/100)
@@ -25,12 +25,12 @@ def process_bed(bed):
             ml_dict[name]["ml"].append(ml)
     return ml_dict
 
-def attach (fasta, ml_dict, out):
+def attach (fasta, ml_dict, out, sample):
     header = { 'HD': {'VN':'1.6','SO':'unsorted','GO':'query'}}
     with pysam.AlignmentFile(out, "w", header=header) as outf:
         for record in SeqIO.parse(fasta, "fasta"):
             a = pysam.AlignedSegment()
-            a.query_name = record.id
+            a.query_name = sample + ":" + record.id if sample else record.id
             a.query_sequence = str(record.seq)
             c_list = []
             for match in re.finditer(r'C', a.query_sequence, flags=re.IGNORECASE):
@@ -42,6 +42,7 @@ def attach (fasta, ml_dict, out):
                 a.flag = 4
                 a.set_tag('MM', mm_tag, value_type='Z')
                 a.set_tag('ML', value = pos_dict["ml"])
+                print("imported to the sam file:", record.id)
                 outf.write(a)
             except KeyError:
                 print("No CG site for ", record.id)
@@ -54,6 +55,8 @@ def main():
                         help='input bed file')
     parser.add_argument('-o', '--out', type=str, required=True,
                         help='output unaligned bam with with values from the bed file in auxiliary tags')
+    parser.add_argument('-s', '--sample', type=str, required=False,
+                        help='sample name used as prefix for the read names')
 
     args = parser.parse_args()
     fasta_file = os.path.abspath(args.fasta)
@@ -64,7 +67,7 @@ def main():
     if not os.path.exists(bed_file):
         raise ValueError("--bed file does not exist!")
     ml_dict = process_bed(bed_file)
-    attach(fasta_file, ml_dict, args.out)
+    attach(fasta_file, ml_dict, args.out, args.sample)
 
 
 
