@@ -45,7 +45,7 @@ def extract_insertion(bam_file, region_file, sample, out, extend):
                                 if (start >= range_start and start <= range_end) or (end >= range_start and end <= range_end):
                                     a = pysam.AlignedSegment()
                                     a.query_name = read.query_name
-                                    a.query_sequence = Seq(read.query_sequence[start:end]).reverse_complement() if read.is_reverse else read.query_sequence[start:end]
+                                    a.query_sequence = str(Seq(read.query_sequence[start:end]).reverse_complement()) if read.is_reverse else read.query_sequence[start:end]
                                     a.query_qualities = read.get_forward_qualities()[start:end]
                                     a.flag = 4
                                     a.set_tag("HP", region_id)
