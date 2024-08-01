@@ -45,7 +45,7 @@ def extract_insertion(bam_file, region_file, sample, out, extend):
                                     a = pysam.AlignedSegment()
                                     a.query_name = read.query_name
                                     a.query_sequence = read.query_sequence[start:end]
-                                    a.query_qualities = read.get_query_qualities()[start:end]
+                                    a.query_qualities = read.get_forward_qualities()[start:end]
                                     a.flag = 4
                                     a.set_tag("HP", region_id)
                                     outf.write(a)
