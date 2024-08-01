@@ -17,7 +17,7 @@ def find_insertion(read, soft_clip=True, len_threshold=50):
             curr_pos += length
     return insertions
 
-def extract_insertion(bam_file, region_file, sample, out):
+def extract_insertion(bam_file, region_file, sample, out, extend):
     with open(region_file, "r") as f:
         regions = [line.strip().split() for line in f]
     bam = pysam.AlignmentFile(bam_file, "rb")
@@ -34,7 +34,7 @@ def extract_insertion(bam_file, region_file, sample, out):
                 else:
                     if read.cigartuples:
                         aligned_pairs = read.get_aligned_pairs(matches_only=True)
-                        query_range = [x[0] for x in aligned_pairs if x[1]>int(region[1])-20 and x[1]<int(region[2])+20]
+                        query_range = [x[0] for x in aligned_pairs if x[1]>int(region[1])-extend and x[1]<int(region[2])+extend]
                         range_start = min(query_range)-1
                         range_end = max(query_range)+1
                         insertions = find_insertion(read)
@@ -62,6 +62,8 @@ def main():
                         help='output extracted seq in unmapped bam format')
     parser.add_argument('-s', '--sample', type=str, required=False,
                         help='sample name used as prefix for the read names')
+    parser.add_argument('-e', '--extend', type=int, default=20,
+                        help='extend the region by this many bp before extracting the sequence')
 
     args = parser.parse_args()
     bam_file = os.path.abspath(args.bam)
@@ -70,7 +72,7 @@ def main():
         raise ValueError("--bam file does not exist!")
     if not os.path.exists(region_file):
         raise ValueError("--region file does not exist!")
-    extract_insertion(bam_file, region_file, args.sample, args.out)
+    extract_insertion(bam_file, region_file, args.sample, args.out, args.extend)
 
 if __name__ == '__main__':
     main()
