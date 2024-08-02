@@ -1,7 +1,6 @@
 import os
 import argparse
 import pysam
-from Bio.Seq import Seq
 
 def find_insertion(read, soft_clip=True, len_threshold=50):
     """
@@ -45,9 +44,16 @@ def extract_insertion(bam_file, region_file, sample, out, extend):
                                 if (start >= range_start and start <= range_end) or (end >= range_start and end <= range_end):
                                     a = pysam.AlignedSegment()
                                     a.query_name = read.query_name
-                                    a.query_sequence = str(Seq(read.query_sequence[start:end]).reverse_complement()) if read.is_reverse else read.query_sequence[start:end]
-                                    a.query_qualities = read.get_forward_qualities()[start:end]
-                                    a.flag = 4
+                                    a.query_sequence = read.query_sequence[start:end]
+                                    a.query_qualities = read.query_qualities[start:end]
+                                    # [*read.modified_bases]  # * operator works only in python 3.5 and above
+                                    # can't set modified_bases with pysam. Leave it for now.
+                                    # for base, mods in read.modified_bases.items():
+                                    #     truncated_mods = [(x[0]-start,x[1]) for x in mods if x[0]>=start and x[0]<end]
+                                    #     if truncated_mods:
+                                    #         a.modified_bases[base] = truncated_mods
+                                    # breakpoint()
+                                    a.flag = read.flag
                                     a.set_tag("HP", region_id)
                                     outf.write(a)
                                     print(f"Extracted subseq from {read.query_name} inserted in {region_id}")
