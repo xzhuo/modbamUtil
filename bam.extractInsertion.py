@@ -28,7 +28,7 @@ def extract_insertion(bam_file, region_file, sample, out, extend):
     with pysam.AlignmentFile(out, "wb", header=header) as outf:
         for region in regions:
             region_id = str(sample) + ":" + region[0] + ":" + region[1] + "-" + region[2]
-            print("Extracting reads from region: ", region_id)
+            # print("Extracting reads from region: ", region_id)
             extracted_number = 0
             for read in bam.fetch(region[0], int(region[1]), int(region[2])):
                 if read.is_supplementary or read.is_secondary or read.is_unmapped:
