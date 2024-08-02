@@ -29,6 +29,7 @@ def extract_insertion(bam_file, region_file, sample, out, extend):
         for region in regions:
             region_id = str(sample) + ":" + region[0] + ":" + region[1] + "-" + region[2]
             print("Extracting reads from region: ", region_id)
+            extracted_number = 0
             for read in bam.fetch(region[0], int(region[1]), int(region[2])):
                 if read.is_supplementary or read.is_secondary or read.is_unmapped:
                     continue
@@ -56,13 +57,15 @@ def extract_insertion(bam_file, region_file, sample, out, extend):
                                     a.flag = read.flag
                                     a.set_tag("HP", region_id)
                                     outf.write(a)
-                                    print(f"Extracted subseq from {read.query_name} inserted in {region_id}")
+                                    extracted_number += 1
+                                    # print(f"Extracted subseq from {read.query_name} inserted in {region_id}")
                         else:
-                            print("No insertion for read: ", read.query_name)
+                            # print("No insertion for read: ", read.query_name)
                             continue
                     else:
-                        print("No cigar string for read: ", read.query_name)
+                        # print("No cigar string for read: ", read.query_name)
                         continue
+            print("Extracted ", extracted_number, " reads from region: ", region_id)
 
     bam.close()
 
