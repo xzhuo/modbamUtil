@@ -65,7 +65,8 @@ def extract_insertion(bam_file, region_file, sample, out, extend):
                     else:
                         # print("No cigar string for read: ", read.query_name)
                         continue
-            print("Extracted ", extracted_number, " reads from region: ", region_id)
+            if extracted_number > 0:
+                print("Extracted ", extracted_number, " reads from region: ", region_id)
 
     bam.close()
 
