@@ -1,6 +1,38 @@
 import os
 import argparse
 import pysam
+import re
+
+class MyAlignedSegment(pysam.AlignedSegment):
+
+    def add_modified_bases(self, base, truncated_mods):
+        """
+        Add a new pair of MM and ML tags for pysam.AlignedSegment
+        Caution! Only tested with C+m tag.
+        """
+
+        nt, reverse, mod = base
+        base_string = f"{nt}+{mod}"
+        c_list = []
+        for match in re.finditer(nt, self.get_forward_sequence(), flags=re.IGNORECASE):
+            c_list.append(match.start())
+        # breakpoint()
+        mm_pos = [x[0] for x in truncated_mods] if self.is_forward else [self.query_length -1 - x[0] for x in truncated_mods][::-1]
+
+        mm_list = [c_list.index(mm_pos[i]) - c_list.index(mm_pos[i-1]) - 1 if i > 0 else c_list.index(mm_pos[i]) for i in range(len(mm_pos))]
+        mm_list.insert(0, base_string)
+        mm_tag = ','.join([str(i) for i in mm_list]) + ';'
+
+        new_ml_list = [x[1] for x in truncated_mods]
+        if self.is_reverse:
+            new_ml_list.reverse()
+        mm = self.get_tag("MM") if self.has_tag("MM") else ""
+        mm += mm_tag
+        ml = self.get_tag("ML") if self.has_tag("ML") else []
+        ml.extend(new_ml_list)
+        self.set_tag('MM', mm, value_type='Z')
+        self.set_tag('ML', value = ml)
+
 
 def find_insertion(read, soft_clip=True, len_threshold=50):
     """
@@ -45,19 +77,19 @@ def extract_insertion(bam_file, region_file, sample, out, extend):
                         if insertions:
                             for start, end in insertions:
                                 if (start >= range_start and start <= range_end) or (end >= range_start and end <= range_end):
-                                    a = pysam.AlignedSegment()
+                                    a = MyAlignedSegment()
                                     a.query_name = read.query_name
                                     a.query_sequence = read.query_sequence[start:end]
                                     a.query_qualities = read.query_qualities[start:end]
+                                    a.flag = read.flag
                                     # [*read.modified_bases]  # * operator works only in python 3.5 and above
                                     # can't set modified_bases with pysam. Leave it for now.
-                                    # for base, mods in read.modified_bases.items():
-                                    #     truncated_mods = [(x[0]-start,x[1]) for x in mods if x[0]>=start and x[0]<end]
-                                    #     if truncated_mods:
-                                    #         a.modified_bases[base] = truncated_mods
-                                    # breakpoint()
-                                    a.flag = read.flag
-                                    a.set_tag("HP", region_id)
+                                    for base, mods in read.modified_bases.items():
+                                        truncated_mods = [(x[0]-start,x[1]) for x in mods if x[0]>=start and x[0]<end]
+                                        if truncated_mods:
+                                            a.add_modified_bases(base, truncated_mods)
+
+                                    a.set_tag("HP", region_id)  # does not work. check whatshap polyphase manual for a better tag
                                     outf.write(a)
                                     extracted_number += 1
                                     # print(f"Extracted subseq from {read.query_name} inserted in {region_id}")
