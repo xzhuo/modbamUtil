@@ -37,6 +37,8 @@ def extract_insertion(bam_file, region_file, sample, out, extend):
                     if read.cigartuples:
                         aligned_pairs = read.get_aligned_pairs(matches_only=True)
                         query_range = [x[0] for x in aligned_pairs if x[1]>int(region[1])-extend and x[1]<int(region[2])+extend]
+                        if len(query_range) == 0:
+                            continue
                         range_start = min(query_range)-1
                         range_end = max(query_range)+1
                         insertions = find_insertion(read)
