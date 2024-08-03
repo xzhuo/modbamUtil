@@ -89,7 +89,7 @@ def extract_insertion(bam_file, region_file, sample, out, extend):
                                         if truncated_mods:
                                             a.add_modified_bases(base, truncated_mods)
 
-                                    a.set_tag("HP", region_id)  # does not work. check whatshap polyphase manual for a better tag
+                                    a.set_tag("RG", region_id)  # try RG tag.
                                     outf.write(a)
                                     extracted_number += 1
                                     # print(f"Extracted subseq from {read.query_name} inserted in {region_id}")
