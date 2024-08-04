@@ -53,56 +53,62 @@ def extract_insertion(bam_file, region_file, sample, out, extend):
     with open(region_file, "r") as f:
         regions = [line.strip().split() for line in f]
     bam = pysam.AlignmentFile(bam_file, "rb")
-    header = bam.header
-    header["HD"]["VN"] = "1.6"
-    header["HD"]["SO"] = "unsorted"
-    header["HD"]["GO"] = "query"
-    with pysam.AlignmentFile(out, "wb", header=header) as outf:
-        for region in regions:
-            region_id = str(sample) + ":" + region[0] + ":" + region[1] + "-" + region[2]
-            # print("Extracting reads from region: ", region_id)
-            extracted_number = 0
-            for read in bam.fetch(region[0], int(region[1]), int(region[2])):
-                if read.is_supplementary or read.is_secondary or read.is_unmapped:
-                    continue
-                else:
-                    if read.cigartuples:
-                        aligned_pairs = read.get_aligned_pairs(matches_only=True)
-                        query_range = [x[0] for x in aligned_pairs if x[1]>int(region[1])-extend and x[1]<int(region[2])+extend]
-                        if len(query_range) == 0:
-                            continue
-                        range_start = min(query_range)-1
-                        range_end = max(query_range)+1
-                        insertions = find_insertion(read)
-                        if insertions:
-                            for start, end in insertions:
-                                if (start >= range_start and start <= range_end) or (end >= range_start and end <= range_end):
-                                    a = MyAlignedSegment()
-                                    a.query_name = read.query_name
-                                    a.query_sequence = read.query_sequence[start:end]
-                                    a.query_qualities = read.query_qualities[start:end]
-                                    a.flag = read.flag
-                                    # [*read.modified_bases]  # * operator works only in python 3.5 and above
-                                    # can't set modified_bases with pysam. Leave it for now.
-                                    for base, mods in read.modified_bases.items():
-                                        truncated_mods = [(x[0]-start,x[1]) for x in mods if x[0]>=start and x[0]<end]
-                                        if truncated_mods:
-                                            a.add_modified_bases(base, truncated_mods)
+    header_dict = bam.header.to_dict()
 
-                                    a.set_tag("RG", region_id)  # try RG tag.
-                                    outf.write(a)
-                                    extracted_number += 1
-                                    # print(f"Extracted subseq from {read.query_name} inserted in {region_id}")
-                        else:
-                            # print("No insertion for read: ", read.query_name)
-                            continue
-                    else:
-                        # print("No cigar string for read: ", read.query_name)
+    # header['PG'] = [{'ID': 'extractInsertion', 'PN': 'extractInsertion', 'VN': '0.1'}]
+    segments = []
+    for rg_id, region in enumerate(regions):
+        region_name = str(sample) + ":" + region[0] + ":" + region[1] + "-" + region[2]
+        header_dict["RG"].append({"ID":rg_id, "SM": region_name})
+        # print("Extracting reads from region: ", region_name)
+        extracted_number = 0
+        for read in bam.fetch(region[0], int(region[1]), int(region[2])):
+            if read.is_supplementary or read.is_secondary or read.is_unmapped:
+                continue
+            else:
+                if read.cigartuples:
+                    aligned_pairs = read.get_aligned_pairs(matches_only=True)
+                    query_range = [x[0] for x in aligned_pairs if x[1]>int(region[1])-extend and x[1]<int(region[2])+extend]
+                    if len(query_range) == 0:
                         continue
-            if extracted_number > 0:
-                print("Extracted ", extracted_number, " reads from region: ", region_id)
+                    range_start = min(query_range)-1
+                    range_end = max(query_range)+1
+                    insertions = find_insertion(read)
+                    if insertions:
+                        for start, end in insertions:
+                            if (start >= range_start and start <= range_end) or (end >= range_start and end <= range_end):
+                                a = MyAlignedSegment()
+                                a.query_name = read.query_name
+                                a.query_sequence = read.query_sequence[start:end]
+                                a.query_qualities = read.query_qualities[start:end]
+                                a.flag = read.flag
+                                # [*read.modified_bases]  # * operator works only in python 3.5 and above
+                                # can't set modified_bases with pysam. Leave it for now.
+                                for base, mods in read.modified_bases.items():
+                                    truncated_mods = [(x[0]-start,x[1]) for x in mods if x[0]>=start and x[0]<end]
+                                    if truncated_mods:
+                                        a.add_modified_bases(base, truncated_mods)
+
+                                # a.set_tag("RG", region_name)  # try RG tag.
+                                a.set_tag("RG", str(rg_id),value_type='Z')
+                                segments.append(a)
+                                extracted_number += 1
+                                # print(f"Extracted subseq from {read.query_name} inserted in {region_name}")
+                    else:
+                        # print("No insertion for read: ", read.query_name)
+                        continue
+                else:
+                    # print("No cigar string for read: ", read.query_name)
+                    continue
+        if extracted_number > 0:
+            print("Extracted ", extracted_number, " reads from region: ", region_name)
 
     bam.close()
+
+    with pysam.AlignmentFile(out, "wb", header=pysam.AlignmentHeader.from_dict(header_dict)) as outf:
+        for a in segments:
+            outf.write(a)
+
 
 def main():
     parser = argparse.ArgumentParser(description='Extract insertion and soft clipped sections intersecting coordinates from a bam file')
