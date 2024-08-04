@@ -58,8 +58,8 @@ def extract_insertion(bam_file, region_file, sample, out, extend):
     # header['PG'] = [{'ID': 'extractInsertion', 'PN': 'extractInsertion', 'VN': '0.1'}]
     segments = []
     for rg_id, region in enumerate(regions):
-        region_name = str(sample) + ":" + region[0] + ":" + region[1] + "-" + region[2]
-        header_dict["RG"].append({"ID":rg_id, "SM": region_name})
+        region_name = str(sample) + "-" + region[0] + "-" + region[1] + "-" + region[2]
+        # header_dict["RG"].append({"ID":rg_id, "SM": region_name})
         # print("Extracting reads from region: ", region_name)
         extracted_number = 0
         for read in bam.fetch(region[0], int(region[1]), int(region[2])):
@@ -89,8 +89,8 @@ def extract_insertion(bam_file, region_file, sample, out, extend):
                                     if truncated_mods:
                                         a.add_modified_bases(base, truncated_mods)
 
-                                # a.set_tag("RG", region_name)  # try RG tag.
-                                a.set_tag("RG", rg_id)
+                                a.set_tag("RG", region_name)  # try RG tag.
+                                # a.set_tag("RG", rg_id)
                                 segments.append(a)
                                 extracted_number += 1
                                 # print(f"Extracted subseq from {read.query_name} inserted in {region_name}")
