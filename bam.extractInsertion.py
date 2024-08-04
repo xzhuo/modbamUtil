@@ -90,7 +90,7 @@ def extract_insertion(bam_file, region_file, sample, out, extend):
                                         a.add_modified_bases(base, truncated_mods)
 
                                 # a.set_tag("RG", region_name)  # try RG tag.
-                                a.set_tag("RG", str(rg_id),value_type='Z')
+                                a.set_tag("RG", rg_id)
                                 segments.append(a)
                                 extracted_number += 1
                                 # print(f"Extracted subseq from {read.query_name} inserted in {region_name}")
