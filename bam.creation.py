@@ -49,7 +49,7 @@ def process_beds(methyl, bed, column, name):
             score = float(line[column + 3])
             ml = round(score*255/100)
             if id not in ml_dict:
-                ml_dict[id] = {"pos": [], "ml": [], "chr": line[0], "start": line[1], "end": line[2]}
+                ml_dict[id] = {"pos": [], "ml": [], "chr": line[0], "start": int(line[1]), "end": int(line[2])}
             ml_dict[id]["pos"].append(pos)
             ml_dict[id]["ml"].append(ml)
     return ml_dict
