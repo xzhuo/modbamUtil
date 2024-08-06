@@ -83,13 +83,13 @@ def main():
     parser.add_argument('-f', '--fasta', type=str, required=True,
                         help='input fasta file')
     parser.add_argument('-m', '--methyl', type=str, required=True,
-                        help='input methylation percentage file')
+                        help='input methylation percentage file. For example, bed file from pb-CpG-tools or bedmethyl file from modkit pileup with traditional preset.')
     parser.add_argument('-b', '--bed', type=str, required=True,
                         help='input bed file used to intersect and extract regions')
     parser.add_argument('-o', '--out', type=str, required=True,
                         help='output unmapped bam with with values from the bed file in auxiliary tags')
     parser.add_argument('-c', '--column', type=int, default=11,
-                        help='column from the methyl file used for methylation percentage that will be attached to the ML tag. Default is 4. (4 for pb-CpG-tools bed, 11 for bedmethyl)')
+                        help='column from the methyl file used for methylation percentage that will be attached to the ML tag. Default is 4 (4 for bed from pb-CpG-tools, 11 for bedmethyl from modkit).')
     parser.add_argument('-n', '--name', type=str, default='both',choices=['coordinates', 'name', 'both'],
                         help='How to name reads from bed file. Coordinates (chrom:start-end) or name (column 4 from the bed file) or both. Must be one of: coordiates, name, or both. Default is both.')
     parser.add_argument('-p', '--prefix', type=str, required=False,
