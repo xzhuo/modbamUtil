@@ -110,8 +110,8 @@ def main():
     # tmp_bed4_file = bed_file + ".tmp"
     tmp_bed4_file = tempfile.NamedTemporaryFile(mode='w', delete=False)
 
-    standardize_tmp_bed(bed_file, tmp_bed4_file)
-    ml_dict = process_beds(methyl_file, tmp_bed4_file, args.column, args.name)
+    standardize_tmp_bed(bed_file, tmp_bed4_file.name)
+    ml_dict = process_beds(methyl_file, tmp_bed4_file.name, args.column, args.name)
     attach(fasta_file, ml_dict, args.out, args.prefix)
     tmp_bed4_file.close()
     os.unlink(tmp_bed4_file.name)
