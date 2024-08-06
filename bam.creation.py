@@ -20,7 +20,8 @@ def standardize_tmp_bed(bed, bed4):
                 raise ValueError("bed file must have at least 3 columns")
             elif len(record) == 3:
                 record.append(".")
-                records.append(record[:4])
+            records.append(record[:4])
+
     with open(bed4, "w") as f:
         for record in records:
             f.write("\t".join(record) + "\n")
