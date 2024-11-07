@@ -79,7 +79,7 @@ def attach (fasta, ml_dict, out, prefix):
                 print("No CG site for ", id)
 
 def main():
-    parser = argparse.ArgumentParser(description='create a bam file from a bed file. Similar to bedtools getfasta, but return a unmapped bam file with methylation percentage in auxiliary tags.')
+    parser = argparse.ArgumentParser(description='create a bam file from a bed file. Similar to bedtools getfasta, but return an unmapped bam file with methylation percentage in auxiliary tags.')
     parser.add_argument('-f', '--fasta', type=str, required=True,
                         help='input fasta file')
     parser.add_argument('-m', '--methyl', type=str, required=True,
@@ -87,11 +87,11 @@ def main():
     parser.add_argument('-b', '--bed', type=str, required=True,
                         help='input bed file used to intersect and extract regions')
     parser.add_argument('-o', '--out', type=str, required=True,
-                        help='output unmapped bam with with values from the bed file in auxiliary tags')
+                        help='output unmapped bam with values from the bed file in auxiliary tags')
     parser.add_argument('-c', '--column', type=int, default=11,
                         help='column from the methyl file used for methylation percentage that will be attached to the ML tag. Default is 4 (4 for bed from pb-CpG-tools, 11 for bedmethyl from modkit).')
     parser.add_argument('-n', '--name', type=str, default='both',choices=['coordinates', 'name', 'both'],
-                        help='How to name reads from bed file. Coordinates (chrom:start-end) or name (column 4 from the bed file) or both. Must be one of: coordiates, name, or both. Default is both.')
+                        help='How to name reads from bed file. Coordinates (chrom:start-end) or name (column 4 from the bed file) or both. Must be one of: coordinates, name, or both. Default is both.')
     parser.add_argument('-p', '--prefix', type=str, required=False,
                         help='prefix for the all read names')
     
