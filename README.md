@@ -1,5 +1,7 @@
 # Scripts to process BAM files with methylation modification tags (ML and MM tags).
 
+Require python3 with package pysam, pybedtools. In some scripts, package mpire is required for multithreads.
+All scripts are also avaible as a docker image docker(xiaoyuz/modbamutil).
 ## bam.Mmtag.regions.oo.py
 usage: bam.Mmtag.regions.oo.py [-h] -b BAM [-t THREADS] -r REGION -f FORM [-l LEN_OFFSET] [-d DEPTH_FILTER]
                                [-w WINDOW] -o OUT
