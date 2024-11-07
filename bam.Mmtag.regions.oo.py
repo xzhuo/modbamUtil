@@ -140,15 +140,15 @@ def main():
     parser.add_argument('-t', '--threads', type=int, default=1,
                         help='multi-threading')
     parser.add_argument('-r', '--region', type=str, required=True,
-                        help='a vcf/bed file of genomeic regions that will be used to summarize the methylation')
+                        help='a vcf/bed file of genomic regions that will be used to summarize the methylation')
     parser.add_argument('-f', '--form', type=str, required=True,
                         help='The file format of the genomic region file, only vcf or bed like files are supported.')
     parser.add_argument('-l', '--len_offset', type=int, default=20,
-                        help='length and coordinate offset from vcf to the bam file. Only insertions with coordinate offset < len and SVlength difference < len will be considered')
+                        help='length and coordinate offset from vcf to the bam file. Only insertions with coordinate offset < len and SVlength difference < len will be considered.')
     parser.add_argument('-d', '--depth_filter', type=int, default=100,
-                        help='regions with read depth higher than the threshold will be ignored')
+                        help='regions with read depth higher than the threshold will be ignored.')
     parser.add_argument('-w', '--window', type=int, default=2000,
-                        help='flanking window on both ends of identified insrtions of the vcf file. CpG methylation within this window on both ends will be summarized')
+                        help='flanking window on both ends of identified insrtions of the vcf file. CpG methylation within this window on both ends will be summarized.')
     parser.add_argument('-o', '--out', type=str, required=True,
                         help='output bed like txt file storing the methylation data in the defined regions')
 
