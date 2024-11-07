@@ -75,7 +75,7 @@ options:
 usage: bam.creation.py [-h] -f FASTA -m METHYL -b BED -o OUT [-c COLUMN]
                        [-n {coordinates,name,both}] [-p PREFIX]
 
-create a bam file from a bed file. Similar to bedtools getfasta, but return a
+create a bam file from a bed file. Similar to bedtools getfasta, but return an
 unmapped bam file with methylation percentage in auxiliary tags.
 
 options:
