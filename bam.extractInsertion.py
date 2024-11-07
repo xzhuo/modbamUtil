@@ -115,7 +115,7 @@ def main():
     parser.add_argument('-b', '--bam', type=str, required=True,
                         help='input bam file')
     parser.add_argument('-r', '--region', type=str, required=True,
-                        help='a bed file of genomeic regions that will be used to intersect with the bam file')
+                        help='a bed file of genomic regions that will be used to intersect with the bam file')
     parser.add_argument('-o', '--out', type=str, required=True,
                         help='output extracted seq in unmapped bam format')
     parser.add_argument('-s', '--sample', type=str, required=False,
