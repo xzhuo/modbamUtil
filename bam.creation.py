@@ -35,7 +35,7 @@ def process_beds(methyl, bed, column, name):
     '''
 
     # intersect bed file with methyl file with -wa -wb option. 
-    methyl_file = pybedtools.BedTool(methyl).sort()
+    methyl_file = pybedtools.BedTool(methyl)
     bed_file = pybedtools.BedTool(bed).sort()
     intersect_bed = bed_file.intersect(methyl_file, wa=True, wb=True, sorted=True)
 
