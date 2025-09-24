@@ -22,4 +22,4 @@ RUN tar -xzf modkit_v0.5.1rc1_u16_x86_64.tar.gz
 RUN rm modkit_v0.5.1rc1_u16_x86_64.tar.gz
 
 
-ENV PATH="$PATH:/dist:/pb-CpG-tools-v3.0.0-x86_64-unknown-linux-gnu/bin"
+ENV PATH="$PATH:/dist_modkit_v0.5.1_8fa79e3:/pb-CpG-tools-v3.0.0-x86_64-unknown-linux-gnu/bin"
