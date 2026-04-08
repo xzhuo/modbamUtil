@@ -3,8 +3,8 @@ FROM condaforge/miniforge3
 
 RUN conda config --add channels bioconda \
     && conda config --add channels conda-forge \
-    && mamba install -y wget git samtools bedtools minimap2 pysam mpire scipy pbjasmine pbmm2 pbtk 
-    # pybedtools 
+    && mamba install -y python=3.12 wget git samtools bedtools minimap2 pysam mpire scipy pbjasmine pbmm2 pbtk pybedtools
+    # pybedtools:0.12 does not work with python 3.13
 RUN pip install modbedtools biopython
 
 # https://stackoverflow.com/questions/36996046/how-to-prevent-dockerfile-caching-git-clone
