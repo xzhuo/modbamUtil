@@ -47,11 +47,14 @@ def process_beds(methyl, bed, column, name):
             id = line[3] if name == 'name' else coordinates if name == 'coordinates' else coordinates + "_" + line[3]
             pos = int(line[5]) - int(line[1])
             score = float(line[column + 3])
+            mm = "m" if column == 4 else line[7] # bedmethyl file column 4 could be "m" or "h".
             ml = round(score*255/100)
             if id not in ml_dict:
-                ml_dict[id] = {"pos": [], "ml": [], "chr": line[0], "start": int(line[1]), "end": int(line[2])}
-            ml_dict[id]["pos"].append(pos)
-            ml_dict[id]["ml"].append(ml)
+                ml_dict[id] = {}
+            if mm not in ml_dict[id]:
+                ml_dict[id][mm] = {"pos": [], "ml": [], "chr": line[0], "start": int(line[1]), "end": int(line[2])}
+            ml_dict[id][mm]["pos"].append(pos)
+            ml_dict[id][mm]["ml"].append(ml)
     return ml_dict
 
 def attach (fasta, ml_dict, out, prefix):
@@ -60,23 +63,31 @@ def attach (fasta, ml_dict, out, prefix):
         fasta = pysam.FastaFile(fasta)
         for id in ml_dict:
             a = pysam.AlignedSegment()
-            pos_dict = ml_dict[id]
-            a.query_sequence = fasta.fetch(reference=pos_dict["chr"], start=pos_dict["start"], end=pos_dict["end"])
-            a.query_name = prefix + ":" + id if prefix else id
-            c_list = []
-            for match in re.finditer(r'C', a.query_sequence, flags=re.IGNORECASE):
-                c_list.append(match.start())
-            try:
-                ref_CpG_list = [x for x in pos_dict["pos"] if x in c_list]
-                mm_list = [c_list.index(ref_CpG_list[i]) - c_list.index(ref_CpG_list[i-1]) - 1 if i > 0 else c_list.index(ref_CpG_list[i]) for i in range(len(ref_CpG_list))]
-                mm_tag = 'C+m?,' + ','.join([str(i) for i in mm_list]) + ';'
-                a.flag = 4
-                a.set_tag('MM', mm_tag, value_type='Z')
-                a.set_tag('ML', value = pos_dict["ml"])
-                print("imported to the sam file:", id)
-                outf.write(a)
-            except KeyError:
-                print("No CG site for ", id)
+            mm_tag = ''
+            ml_list = []
+            for mm in ml_dict[id]:
+                pos_dict = ml_dict[id][mm]
+                a.query_sequence = fasta.fetch(reference=pos_dict["chr"], start=pos_dict["start"], end=pos_dict["end"])
+                a.query_name = prefix + ":" + id if prefix else id
+                c_list = []
+                for match in re.finditer(r'C', a.query_sequence, flags=re.IGNORECASE):
+                    c_list.append(match.start())
+                try:
+                    ref_CpG_list = [x for x in pos_dict["pos"] if x in c_list]
+                    mm_list = [c_list.index(ref_CpG_list[i]) - c_list.index(ref_CpG_list[i-1]) - 1 if i > 0 else c_list.index(ref_CpG_list[i]) for i in range(len(ref_CpG_list))]
+                    mm_prefix = 'C+' + mm + '?,'
+                    mm_tag += mm_prefix + ','.join([str(i) for i in mm_list]) + ';'
+                    # mm_tag = 'C+m?,' + ','.join([str(i) for i in mm_list]) + ';'
+                    ml_list.extend(pos_dict["ml"])
+                except KeyError:
+                    print("No CG site for ", id)
+
+            a.flag = 4
+            a.set_tag('MM', mm_tag, value_type='Z')
+            # a.set_tag('ML', value = ml_list, value_type='B', sub_type='C')
+            a.set_tag('ML', value = ml_list)
+            print("imported to the sam file:", id)
+            outf.write(a)
 
 def main():
     parser = argparse.ArgumentParser(description='create a sam file from a bed file. Similar to bedtools getfasta, but return an unmapped sam file with methylation percentage in auxiliary tags.')
